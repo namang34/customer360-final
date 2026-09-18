@@ -38,6 +38,13 @@ Read `docs/EVALUATION.md` for what these numbers do and do not prove — the
 confidence thresholds were calibrated against these eight checkpoints, so this is
 a calibration result, not independent evidence of generalisation.
 
+The models were measured too, not just assumed: scenario_03 run live made 74 model
+calls with no failures, matched the offline run on every graded field, and proposed
+an action on 24 of 74 days against the deterministic path's 42 — more conservative,
+with no graded answer lost. Getting there meant fixing four defects the fallbacks had
+been hiding. Both the result and the defects are in
+[`docs/EVALUATION.md`](docs/EVALUATION.md).
+
 ## Quick start
 
 ```bash
@@ -47,6 +54,7 @@ pip install -r requirements.txt
 python -m pytest tests/ -q          # 237 tests
 python run_evaluation.py            # run + score all three scenarios
 python watch.py data/scenario_03 --speed 2   # watch it think, ~2.5 min
+python compare_live.py --scenario data/scenario_03   # offline vs live, side by side
 ```
 
 Add `--live` to `run_evaluation.py` or `watch.py` to use the Gemini/Groq models

@@ -353,10 +353,13 @@ children.push(bullet([
 ]));
 
 children.push(bullet([
-  ["The language-model path is less tested than the deterministic path. ", { bold: true }],
-  ["All 237 tests run offline, so the fallbacks are what continuous testing covers. Live model runs should " +
-   "match or improve on these numbers, since models only adjudicate between close candidates and judge " +
-   "proportionality — but that is an expectation, not a measurement.", {}],
+  ["The live model path is measured on one scenario only. ", { bold: true }],
+  ["All 237 tests run offline, so the fallbacks are what continuous testing covers. scenario_03 was also run " +
+   "live (74 model calls, no failures): every graded field matched the offline run exactly, and the models " +
+   "proposed an action on 24 of 74 days against the deterministic path's 42 — more conservative, with no " +
+   "graded answer lost. Scenarios 01 and 02 were not run live. Running the models at all first required " +
+   "fixing four defects that the fallbacks had been hiding; docs/EVALUATION.md documents them and the " +
+   "remaining limits.", {}],
 ]));
 
 children.push(bullet([
