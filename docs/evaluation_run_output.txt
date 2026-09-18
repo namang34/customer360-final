@@ -2,7 +2,7 @@
 ========================================================================
 RUN scenario_01  [offline]
 ========================================================================
-  events=116 checkpoints=74 syntheses=74 (carried_forward=5) proposals=26 guardrail_blocks=0 critique_rejects=0 escalations=26 late_arrivals=1 llm_calls=0 llm_failures=2 embedder=hashing-256
+  events=116 checkpoints=74 syntheses=74 (carried_forward=5) proposals=26 guardrail_blocks=0 critique_rejects=0 escalations=26 flagged_for_review=2 late_arrivals=1 llm_calls=0 llm_failures=2 embedder=hashing-256
   wrote out/scenario_01_inferred_events.json
 
 === scenario_01
@@ -39,7 +39,7 @@ FALSE-POSITIVE CHECKS
 ========================================================================
 RUN scenario_02  [offline]
 ========================================================================
-  events=110 checkpoints=74 syntheses=74 (carried_forward=1) proposals=28 guardrail_blocks=0 critique_rejects=0 escalations=28 late_arrivals=1 llm_calls=0 llm_failures=2 embedder=hashing-256
+  events=110 checkpoints=74 syntheses=74 (carried_forward=1) proposals=28 guardrail_blocks=0 critique_rejects=0 escalations=28 flagged_for_review=4 late_arrivals=1 llm_calls=0 llm_failures=2 embedder=hashing-256
   wrote out/scenario_02_inferred_events.json
 
 === scenario_02
@@ -71,7 +71,7 @@ FALSE-POSITIVE CHECKS
 ========================================================================
 RUN scenario_03  [offline]
 ========================================================================
-  events=72 checkpoints=74 syntheses=74 (carried_forward=5) proposals=42 guardrail_blocks=0 critique_rejects=0 escalations=42 late_arrivals=0 llm_calls=0 llm_failures=2 embedder=hashing-256
+  events=72 checkpoints=74 syntheses=74 (carried_forward=5) proposals=42 guardrail_blocks=0 critique_rejects=0 escalations=42 flagged_for_review=1 late_arrivals=0 llm_calls=0 llm_failures=2 embedder=hashing-256
   wrote out/scenario_03_inferred_events.json
 
 === scenario_03
