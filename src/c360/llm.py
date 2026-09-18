@@ -50,9 +50,14 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 # Model choices, overridable from .env so no code change is needed to swap them.
+# Defaults verified against the live provider catalogues on 18 Sept 2026. The
+# originals -- gemini-3.1-pro and llama-3.3-70b-versatile -- had both been
+# retired, so a clean clone with valid keys still answered 404 on every call.
+# Model names are configuration and they rot; `python compare_live.py --models`
+# lists what a given key can actually reach.
 FAST_MODEL = os.getenv("C360_FAST_MODEL", "gemini-3.1-flash-lite")
-REASONING_MODEL = os.getenv("C360_REASONING_MODEL", "gemini-3.1-pro")
-GROQ_MODEL = os.getenv("C360_GROQ_MODEL", "llama-3.3-70b-versatile")
+REASONING_MODEL = os.getenv("C360_REASONING_MODEL", "gemini-3.1-flash-lite")
+GROQ_MODEL = os.getenv("C360_GROQ_MODEL", "openai/gpt-oss-20b")
 
 # Seconds to wait for one request before giving up on it. Deliberately short:
 # every caller has a deterministic fallback, so a slow answer is worth less than
