@@ -20,10 +20,19 @@ Scored by `run_evaluation.py` against each scenario's `ground_truth.json`, offli
 
 237 tests pass in under 20 seconds.
 
-Deliverables: `docs/Customer360_MidTerm_Submission.pdf` (mid-term submission: research, architecture, progress) ·
-`docs/architecture.svg` (system flow) · `docs/architecture_agents.svg` (agent & tool detail: every tool and the
-data source it touches) · `docs/AGENTS.md` (agent register: what each agent
-is, what it can do, its exact I/O schema) · `docs/EVALUATION.md` (full evaluation write-up).
+Deliverables, by problem-statement section:
+
+| § | Deliverable | Where |
+|---|---|---|
+| 7.1 | Research log | [`RESEARCH.md`](RESEARCH.md) |
+| 7.2 | Codebase, integrated end to end | [`src/c360/`](src/c360) · [`watch.py`](watch.py) to see it run |
+| 7.3 | Architecture diagram | [`docs/architecture.svg`](docs/architecture.svg) (system flow) · [`docs/architecture_agents.svg`](docs/architecture_agents.svg) (every agent, its tools, and the data source each tool touches) |
+| 7.4 | Solution document (3 pages) | [`docs/Customer360_Solution_Document.pdf`](docs/Customer360_Solution_Document.pdf) |
+| 7.5 | Testing & evaluation | [`docs/EVALUATION.md`](docs/EVALUATION.md) |
+
+Also here: [`docs/AGENTS.md`](docs/AGENTS.md) (agent register — what each agent is, what it can do, its exact
+I/O schema) and [`docs/Customer360_MidTerm_Submission.pdf`](docs/Customer360_MidTerm_Submission.pdf), the
+mid-term checkpoint, kept for the record.
 
 Read `docs/EVALUATION.md` for what these numbers do and do not prove — the
 confidence thresholds were calibrated against these eight checkpoints, so this is

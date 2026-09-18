@@ -20,6 +20,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
+# Configuration lives in .env (API keys, model overrides). Loaded here, at the
+# entry point, rather than inside c360.llm -- a library module that reads files
+# on import is surprising, and the test suite must be able to run with no .env
+# at all. override=False means a real environment variable always wins.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
+except ModuleNotFoundError:  # python-dotenv absent: real env vars still work
+    pass
+
 from c360.pipeline import Pipeline  # noqa: E402
 from c360.scoring import overall_report, score_scenario  # noqa: E402
 

@@ -226,3 +226,103 @@ describes, reproduced in miniature. It now raises only when the picture changes:
 a different reason, state, confidence band, or a new source system joining. A
 test caps the queue at ten items per scenario so that regression cannot return
 quietly.
+
+## The live model path, measured
+
+Every number above this section comes from the offline deterministic path. This
+section is the first time the language models were measured, and the measurement
+changed what we know.
+
+Reproduce with `python compare_live.py --scenario data/scenario_03`, which runs
+the same scenario twice against the same ground truth and reports every graded
+field that differs.
+
+### scenario_03, 74 checkpoints
+
+| | offline | live |
+|---|---|---|
+| actions proposed | 42 | **24** |
+| model calls | 0 | 74 |
+| model failures | 2 | **0** |
+| `inferred_state` / `confidence_band` / `action` | 100% | 100% |
+| all fields exact | 100% | 100% |
+| false-positive checks | clean | clean |
+
+Zero fallbacks. Every model call succeeded, so this is a genuine live run rather
+than the offline run wearing a label — a distinction that matters, for reasons
+the next section explains.
+
+### What the models changed
+
+**They proposed 18 fewer actions and got the same graded answers.** The
+deterministic path proposes an action on 42 of 74 days; the model path on 24. All
+three graded checkpoints are identical and exactly right either way. The
+divergence is entirely on the ungraded days between them, where the model
+declines to act and the arithmetic does not.
+
+That is a real behavioural difference and it favours the model path on a
+dimension the harness does not score. Ground truth grades eight dates; a
+relationship manager would live with all 74. Eighteen fewer alerts across ten
+weeks, with no graded answer lost, is the alert-fatigue argument from
+`guardrail.py` showing up again — this time as a measurement rather than a claim.
+
+**75 field differences across 74 checkpoints**, all in `action_subtype` on
+ungraded days. The pattern is that the model, asked for a subtype, sometimes
+returns the *action* name instead — `proactive_retention_outreach` where the
+deterministic path says `retention_winback_contact` — and once returned nothing
+at all. `prompts.PROPOSER` asks for action and subtype in one response and the
+model collapses them. Ground truth checks `action_subtype` at two of the eight
+checkpoints and the model is correct at both, so nothing is lost here; but a
+harness that graded subtype daily would punish it, and the prompt is the thing to
+fix.
+
+### Honest limits on this measurement
+
+- **One scenario.** scenario_03 only. scenario_01 and scenario_02 were not run
+  live; free-tier quota and the deadline were the constraint, not the result.
+- **Both halves used the hashing embedder.** The live path would normally use the
+  ONNX model. Holding retrieval fixed is deliberate — changing the embedder and
+  the models together would make a difference unattributable — but it means this
+  measures the model path, not the full production configuration.
+- **`gemini-3.1-flash-lite` in both roles.** The documented reasoning model,
+  `gemini-3.1-pro`, does not exist under that name; the provider lists
+  `gemini-3.1-pro-preview`. Its nearest available substitute, `gemini-3.5-flash`,
+  averaged over two minutes per call on free-tier quota — roughly three hours for
+  one scenario. So the fast/reasoning split the architecture describes was
+  collapsed for this run. The split is real in the code; it was not exercised here.
+- **Groq was never reached.** `llama-3.3-70b-versatile` has been retired. The
+  configured fallback is now `openai/gpt-oss-20b`, but with zero Gemini failures
+  the failover path did not run and remains untested against a live provider.
+
+### Four defects this exercise found, all invisible until now
+
+The live path had never executed before today. Nothing that only breaks with a
+model in the loop had ever been exercised, and four separate faults had
+accumulated behind the fallbacks:
+
+1. **`.env` was never loaded.** `load_dotenv()` appeared nowhere in the codebase,
+   so no key ever reached `get_llm()`. `--live` printed `[live LLM]` and ran fully
+   deterministic. Fixed at the three entry points.
+2. **A missing optional package disabled the primary provider.** Both clients were
+   constructed inside one `try`, so `ImportError` from the Groq fallback destroyed
+   the working Gemini client, and `except ImportError: pass` swallowed the reason.
+   Each provider is now built independently and failures are reported.
+3. **Content-block extraction discarded every reply.** Gemini returns `.content`
+   as `[{"type": "text", "text": ...}]`; the code called `str()` on it and handed
+   the JSON parser Python repr. The model was answering correctly the whole time.
+4. **No request timeout, and two stacked retry loops.** A hung call could block a
+   74-day replay indefinitely, and LangChain's own retries multiplied
+   `ResilientLLM`'s. Now a 25-second timeout with `max_retries=0` on the clients.
+
+**The common cause is worth more than the four fixes.** Every fallback in this
+system is deliberate: a model failure must never kill a run. But the same property
+made a *misconfiguration* indistinguishable from a healthy run — it completed, it
+printed `[live LLM]`, and it scored 8/8, because those were the offline scores.
+`LLMUnavailable("all providers exhausted")` even recorded each provider's error
+into the trace and then raised a message containing none of it.
+
+Fail-soft and fail-silent are one design decision apart, and this system had
+repeatedly chosen the second by accident. `compare_live.py` exists to close that
+gap: it reports the provider, the raw reply, the call and parse outcomes
+separately, and warns explicitly when a "live" run made no successful calls, on
+the grounds that such a comparison is not evidence of anything.

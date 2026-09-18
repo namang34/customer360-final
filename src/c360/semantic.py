@@ -354,7 +354,27 @@ class SemanticMemory:
         return HashingEmbedder(), HashingEmbedder.EMBEDDER_NAME
 
     def _collection(self, name: str):
-        return self.client.get_or_create_collection(name=name, embedding_function=self.embedder)
+        """
+        Collections are namespaced by embedder, and that is a correctness rule
+        rather than tidiness.
+
+        Chroma fixes one vector dimension per collection, and the two embedders
+        here do not agree: the default model is 384-dimensional, the hashing
+        fallback 256. Switching between them -- which is exactly what switching
+        between a live run and an offline one does -- previously hit
+        "Collection expecting embedding with dimension of 256, got 384" against
+        the collection the earlier run had already created.
+
+        Even where the dimensions happened to match, the vectors would not be
+        comparable: a hashed vector and a learned embedding of the same sentence
+        have nothing to do with each other, so a query embedded one way against
+        documents embedded the other way returns ranked nonsense rather than an
+        error. Separate collections make that impossible by construction.
+        """
+        suffix = re.sub(r"[^A-Za-z0-9_-]+", "-", self.embedder_name).strip("-")
+        return self.client.get_or_create_collection(
+            name=f"{name}__{suffix}", embedding_function=self.embedder
+        )
 
     # -- writing -----------------------------------------------------------
 

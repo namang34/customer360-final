@@ -109,6 +109,7 @@ class Pipeline:
         offline: bool = False,
         db_path: str | Path = ":memory:",
         chroma_path: str | Path | None = None,
+        prefer_default_embedder: bool | None = None,
         trace_path: str | Path | None = None,
         hitl_responses: list[str] | None = None,
         interactive_hitl: bool = False,
@@ -123,7 +124,13 @@ class Pipeline:
 
         self.memory = EpisodicMemory(db_path, customer_id=self.entities.get("customer_id"))
         self.board = StateBoard(self.memory)
-        self.semantic = SemanticMemory(chroma_path, prefer_default_embedder=not offline)
+        # Defaults to the live/offline split, but can be pinned. A controlled
+        # offline-vs-live comparison has to hold retrieval constant: if the
+        # embedder changes at the same time as the language models, a difference
+        # in the output cannot be attributed to either.
+        if prefer_default_embedder is None:
+            prefer_default_embedder = not offline
+        self.semantic = SemanticMemory(chroma_path, prefer_default_embedder=prefer_default_embedder)
         self.semantic.seed()
 
         self.agents = default_swarm()

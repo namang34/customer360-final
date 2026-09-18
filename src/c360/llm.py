@@ -54,6 +54,11 @@ FAST_MODEL = os.getenv("C360_FAST_MODEL", "gemini-3.1-flash-lite")
 REASONING_MODEL = os.getenv("C360_REASONING_MODEL", "gemini-3.1-pro")
 GROQ_MODEL = os.getenv("C360_GROQ_MODEL", "llama-3.3-70b-versatile")
 
+# Seconds to wait for one request before giving up on it. Deliberately short:
+# every caller has a deterministic fallback, so a slow answer is worth less than
+# a prompt one, and the run has to finish.
+REQUEST_TIMEOUT = float(os.getenv("C360_REQUEST_TIMEOUT", "25"))
+
 
 @dataclass
 class LLMCall:
@@ -105,6 +110,36 @@ class NullLLM:
 # Real providers
 # ---------------------------------------------------------------------------
 
+def message_text(content: Any) -> str:
+    """
+    Pull the text out of a chat response.
+
+    LangChain returns `.content` as a plain string for some providers and as a
+    LIST OF CONTENT BLOCKS for others -- Gemini returns
+    [{"type": "text", "text": "...", "extras": {...}}]. The original code did
+    `str(content)` for the non-string case, which stringified the Python list
+    and handed the JSON parser `{'type': 'text', ...}` -- Python repr, single
+    quotes, not JSON. Every model call in the system therefore failed to parse
+    and fell back to its deterministic path, silently, while the model was
+    answering correctly all along.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                text = block.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        if parts:
+            return "".join(parts)
+    return str(content)
+
+
+
 class GeminiLLM:
     provider = "gemini"
 
@@ -115,11 +150,19 @@ class GeminiLLM:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         self.model = model
-        self._client = ChatGoogleGenerativeAI(model=model, temperature=temperature)
+        # timeout: without one a hung request blocks the replay forever. An
+        # ambient system that stops advancing is worse than one that misses a
+        # classification, because the fallback is designed to cover the second.
+        # max_retries=0: ResilientLLM already retries with backoff and then fails
+        # over. Leaving the client's own retries on stacks two loops and turns a
+        # 30-second failure into several minutes.
+        self._client = ChatGoogleGenerativeAI(
+            model=model, temperature=temperature, timeout=REQUEST_TIMEOUT, max_retries=0
+        )
 
     def complete(self, system: str, user: str) -> str:
         message = self._client.invoke([("system", system), ("human", user)])
-        return message.content if isinstance(message.content, str) else str(message.content)
+        return message_text(message.content)
 
 
 class GroqLLM:
@@ -129,11 +172,13 @@ class GroqLLM:
         from langchain_groq import ChatGroq
 
         self.model = model
-        self._client = ChatGroq(model=model, temperature=temperature)
+        self._client = ChatGroq(
+            model=model, temperature=temperature, timeout=REQUEST_TIMEOUT, max_retries=0
+        )
 
     def complete(self, system: str, user: str) -> str:
         message = self._client.invoke([("system", system), ("human", user)])
-        return message.content if isinstance(message.content, str) else str(message.content)
+        return message_text(message.content)
 
 
 # ---------------------------------------------------------------------------
@@ -209,14 +254,40 @@ class ResilientLLM:
                     if attempt < self.attempts - 1:
                         time.sleep(self.base_delay * (2**attempt))
         self.failures += 1
-        raise LLMUnavailable("all providers exhausted")
+        # Carry the provider's own error into the message. "all providers
+        # exhausted" alone says a call failed but not why, which is the
+        # difference between a quota problem, a bad model name and a network
+        # fault -- three very different fixes.
+        # One error per distinct provider/model, not the last N. The failover
+        # means the final errors are always the fallback's, which hides why the
+        # primary was abandoned in the first place.
+        recent = [c for c in self.calls[-(self.attempts * 2):] if c.error]
+        seen: dict[str, str] = {}
+        for call in recent:
+            seen.setdefault(f"{call.provider}/{call.model}", call.error or "")
+        detail = " | ".join(f"{k}: {v}" for k, v in seen.items()) or "no provider error recorded"
+        raise LLMUnavailable(f"all providers exhausted -- {detail}")
 
 
 # ---------------------------------------------------------------------------
 # Construction
 # ---------------------------------------------------------------------------
 
-def get_llm(role: str = "fast", *, allow_network: bool | None = None) -> LLM:
+def _build(factory, label: str, notes: list[str]):
+    """Construct one provider, recording why it could not be built."""
+    try:
+        return factory()
+    except Exception as exc:  # noqa: BLE001 -- provider SDKs raise many types
+        notes.append(f"{label}: {type(exc).__name__}: {exc}")
+        return None
+
+
+def get_llm(
+    role: str = "fast",
+    *,
+    allow_network: bool | None = None,
+    problems: list[str] | None = None,
+) -> LLM:
     """
     Build a client for a role, or NullLLM if nothing is configured.
 
@@ -235,23 +306,24 @@ def get_llm(role: str = "fast", *, allow_network: bool | None = None) -> LLM:
     has_gemini = bool(os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
     has_groq = bool(os.getenv("GROQ_API_KEY"))
 
-    try:
-        if role == "reasoning":
-            if has_gemini:
-                return ResilientLLM(
-                    GeminiLLM(REASONING_MODEL), GroqLLM() if has_groq else None
-                )
-            if has_groq:
-                return ResilientLLM(GroqLLM())
-        else:
-            if has_gemini:
-                return ResilientLLM(GeminiLLM(FAST_MODEL), GroqLLM() if has_groq else None)
-            if has_groq:
-                return ResilientLLM(GroqLLM())
-    except ImportError:
-        # langchain-groq is not installed yet per the brief. Missing a package is
-        # not a reason to fail the run.
-        pass
+    # Each provider is built independently and its failure recorded rather than
+    # raised. The earlier version constructed both inside one try/except, so a
+    # missing langchain-groq -- the FALLBACK -- also took out Gemini, the
+    # primary, and the run went silently deterministic with keys sitting right
+    # there in .env. A provider that cannot be built is one provider lost, not
+    # the whole live path.
+    notes: list[str] = [] if problems is None else problems
+    model = REASONING_MODEL if role == "reasoning" else FAST_MODEL
+
+    gemini = _build(lambda: GeminiLLM(model), f"gemini({model})", notes) if has_gemini else None
+    groq = _build(GroqLLM, f"groq({GROQ_MODEL})", notes) if has_groq else None
+
+    if gemini is not None:
+        return ResilientLLM(gemini, groq)
+    if groq is not None:
+        return ResilientLLM(groq)
+    if not has_gemini and not has_groq:
+        notes.append("no API key found in the environment (GOOGLE_API_KEY / GROQ_API_KEY)")
     return NullLLM()
 
 
