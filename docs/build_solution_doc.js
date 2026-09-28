@@ -353,13 +353,16 @@ children.push(bullet([
 ]));
 
 children.push(bullet([
-  ["The live model path is measured on one scenario only. ", { bold: true }],
-  ["All 237 tests run offline, so the fallbacks are what continuous testing covers. scenario_03 was also run " +
-   "live (74 model calls, no failures): every graded field matched the offline run exactly, and the models " +
-   "proposed an action on 24 of 74 days against the deterministic path's 42 — more conservative, with no " +
-   "graded answer lost. Scenarios 01 and 02 were not run live. Running the models at all first required " +
-   "fixing four defects that the fallbacks had been hiding; docs/EVALUATION.md documents them and the " +
-   "remaining limits.", {}],
+  ["The models lose a graded checkpoint. ", { bold: true }],
+  ["All 237 tests run offline, so the fallbacks are what continuous testing covers. All three " +
+   "scenarios were then run live (231 model calls, no failures). scenario_01 was byte-identical; " +
+   "scenario_03 matched on every graded field while proposing 24 actions against 42 \u2014 more " +
+   "conservative, nothing lost. scenario_02 was wrong: on 20 February the live path read a new-child " +
+   "narrative as income disruption, and held that for fifteen days before recovering. Offline scores " +
+   "8/8; live would score 7/8. The failure is in the early, weak-evidence phase \u2014 exactly where " +
+   "lead time is earned. On this data, matching plus arithmetic beat the model at narrative judgement. " +
+   "Running the models at all first required fixing five defects the fallbacks had been hiding; " +
+   "docs/EVALUATION.md documents them and the remaining limits.", {}],
 ]));
 
 children.push(bullet([

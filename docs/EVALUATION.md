@@ -227,76 +227,113 @@ a different reason, state, confidence band, or a new source system joining. A
 test caps the queue at ten items per scenario so that regression cannot return
 quietly.
 
-## The live model path, measured
+## The live model path, measured on all three scenarios
 
 Every number above this section comes from the offline deterministic path. This
-section is the first time the language models were measured, and the measurement
-changed what we know.
+section is the first time the language models were measured. It changed what we
+know, and not all of it is flattering.
 
-Reproduce with `python compare_live.py --scenario data/scenario_03`, which runs
+Reproduce with `python compare_live.py --scenario data/scenario_0N`, which runs
 the same scenario twice against the same ground truth and reports every graded
 field that differs.
 
-### scenario_03, 74 checkpoints
+| | scenario_01 | scenario_02 | scenario_03 |
+|---|---|---|---|
+| model calls | 70 | 87 | 74 |
+| model failures | **0** | **0** | **0** |
+| actions proposed, offline → live | 26 → 26 | 28 → 28 | 42 → **24** |
+| graded fields differing | **0** | 18 | 75 |
+| offline: state / exact | 100% / 100% | 100% / 100% | 100% / 100% |
+| live: state / exact | 100% / 100% | **50% / 50%** | 100% / 100% |
 
-| | offline | live |
-|---|---|---|
-| actions proposed | 42 | **24** |
-| model calls | 0 | 74 |
-| model failures | 2 | **0** |
-| `inferred_state` / `confidence_band` / `action` | 100% | 100% |
-| all fields exact | 100% | 100% |
-| false-positive checks | clean | clean |
+Not one model call fell back across all three runs. These are genuine live
+results, not the offline path wearing a label.
 
-Zero fallbacks. Every model call succeeded, so this is a genuine live run rather
-than the offline run wearing a label — a distinction that matters, for reasons
-the next section explains.
+### The headline: the models lose a graded checkpoint
 
-### What the models changed
+**scenario_02, 20 February. Ground truth says `new_child_life_event`; the live
+path says `job_loss_or_income_disruption`.** The deterministic path gets it
+right. That is a graded field, and the live run scores 50% on `inferred_state`
+where offline scores 100%.
 
-**They proposed 18 fewer actions and got the same graded answers.** The
-deterministic path proposes an action on 42 of 74 days; the model path on 24. All
-three graded checkpoints are identical and exactly right either way. The
-divergence is entirely on the ungraded days between them, where the model
-declines to act and the arithmetic does not.
+The failure has a clear shape. The live path called it job loss on **every day
+from 15 February to 3 March** — fifteen consecutive checkpoints — and then
+recovered. By the second graded checkpoint, 27 March, it agreed with the
+deterministic path and with ground truth. So the models did not fail randomly;
+they failed on the **early, weak-evidence phase** of the narrative and corrected
+once the evidence was unambiguous.
 
-That is a real behavioural difference and it favours the model path on a
-dimension the harness does not score. Ground truth grades eight dates; a
-relationship manager would live with all 74. Eighteen fewer alerts across ten
-weeks, with no graded answer lost, is the alert-fatigue argument from
-`guardrail.py` showing up again — this time as a measurement rather than a claim.
+It is also a *reasonable* misreading, which is what makes it worth documenting.
+A new child does reduce income during leave, so "income disruption" is a
+defensible reading of the early signals in isolation. The deterministic path
+survives because it is not reasoning about narrative at all: it matches the
+baby-related retail and life-event signals and counts them. The model's broader
+reading overrode the narrower evidence, and the narrower evidence was right.
 
-**75 field differences across 74 checkpoints**, all in `action_subtype` on
-ungraded days. The pattern is that the model, asked for a subtype, sometimes
-returns the *action* name instead — `proactive_retention_outreach` where the
-deterministic path says `retention_winback_contact` — and once returned nothing
-at all. `prompts.PROPOSER` asks for action and subtype in one response and the
-model collapses them. Ground truth checks `action_subtype` at two of the eight
-checkpoints and the model is correct at both, so nothing is lost here; but a
-harness that graded subtype daily would punish it, and the prompt is the thing to
-fix.
+The honest conclusion is the uncomfortable one: **on this data, keyword matching
+plus arithmetic beat a language model at the task the language model is
+supposedly better at.** Lead time is exactly where a proactive system earns its
+keep, and that is precisely where the models were weakest.
+
+### Where they agreed, and where they diverged harmlessly
+
+**scenario_01: zero differences.** Not merely the same score — byte-identical
+decisions at all 74 checkpoints, the same 26 proposed actions. The keyword
+fallbacks and the models reached the same conclusions throughout.
+
+**scenario_03: 75 differences, none graded.** The live path proposed an action on
+24 of 74 days against the deterministic path's 42, and still got all three graded
+checkpoints exactly right. Eighteen fewer alerts across ten weeks with no graded
+answer lost — the alert-fatigue argument behind `guardrail.py` showing up as a
+measurement rather than a claim. The remaining differences are `action_subtype`
+on ungraded days, where the model sometimes returns the *action* name as the
+subtype (`proactive_retention_outreach` instead of
+`retention_winback_contact`) and once returned nothing. `prompts.PROPOSER` asks
+for action and subtype in one response and the model collapses them. Ground truth
+checks `action_subtype` at two checkpoints and the model is right at both, so
+nothing is lost here — but the prompt is a real defect.
+
+Taken together, three scenarios say something one scenario could not: the models
+are **not uniformly more conservative, nor uniformly worse**. They were identical
+on one narrative, harmlessly more cautious on another, and wrong on the early
+phase of a third. A single run would have licensed a confident generalisation
+that the other two contradict.
+
+### What this means for the submitted results
+
+The published numbers are the offline ones, and this is the evidence that was the
+right default rather than a convenience. Offline scores 8/8 across all three
+scenarios; live would score 7/8.
+
+The models are retained because the architecture uses them for what they are good
+at — reading free text in support tickets, in-app searches and social posts — and
+keeps them away from the corroboration arithmetic and the guardrail entirely.
+This measurement supports that split rather than undermining it: the failure was
+at the layer where a model was asked to weigh a whole narrative, not at the layer
+where one was asked to read a sentence.
 
 ### Honest limits on this measurement
 
-- **One scenario.** scenario_03 only. scenario_01 and scenario_02 were not run
-  live; free-tier quota and the deadline were the constraint, not the result.
 - **Both halves used the hashing embedder.** The live path would normally use the
-  ONNX model. Holding retrieval fixed is deliberate — changing the embedder and
-  the models together would make a difference unattributable — but it means this
-  measures the model path, not the full production configuration.
+  ONNX model. Holding retrieval fixed is deliberate — varying the embedder and
+  the models together would make any difference unattributable — but it means
+  this measures the model path, not the full production configuration.
 - **`gemini-3.1-flash-lite` in both roles.** The documented reasoning model,
   `gemini-3.1-pro`, does not exist under that name; the provider lists
   `gemini-3.1-pro-preview`. Its nearest available substitute, `gemini-3.5-flash`,
-  averaged over two minutes per call on free-tier quota — roughly three hours for
-  one scenario. So the fast/reasoning split the architecture describes was
-  collapsed for this run. The split is real in the code; it was not exercised here.
-- **Groq was never reached.** `llama-3.3-70b-versatile` has been retired. The
-  configured fallback is now `openai/gpt-oss-20b`, but with zero Gemini failures
-  the failover path did not run and remains untested against a live provider.
+  averaged over two minutes per call on free-tier quota. So the fast/reasoning
+  split the architecture describes was collapsed for these runs. A stronger
+  reasoning model might well get 20 February right; that is untested, and the
+  claim here is only about what was measured.
+- **Groq was never reached.** `llama-3.3-70b-versatile` has been retired; the
+  configured fallback is now `openai/gpt-oss-20b`. With zero Gemini failures the
+  failover path never ran and remains untested against a live provider.
+- **One run per scenario.** Temperature is 0 throughout, so runs should be
+  reproducible, but that was not verified by repetition.
 
 ### Four defects this exercise found, all invisible until now
 
-The live path had never executed before today. Nothing that only breaks with a
+The live path had never executed before this. Nothing that only breaks with a
 model in the loop had ever been exercised, and four separate faults had
 accumulated behind the fallbacks:
 
@@ -314,7 +351,14 @@ accumulated behind the fallbacks:
    74-day replay indefinitely, and LangChain's own retries multiplied
    `ResilientLLM`'s. Now a 25-second timeout with `max_retries=0` on the clients.
 
-**The common cause is worth more than the four fixes.** Every fallback in this
+A fifth, found while building the comparison: `SemanticMemory` named its
+collections without reference to the embedder, so running both paths in one
+process collided a 256-dimension store with a 384-dimension one. Collections are
+now namespaced by embedder — which is a correctness rule, not tidiness, since
+vectors from two embedders are not comparable even when the dimensions happen to
+match.
+
+**The common cause is worth more than the five fixes.** Every fallback in this
 system is deliberate: a model failure must never kill a run. But the same property
 made a *misconfiguration* indistinguishable from a healthy run — it completed, it
 printed `[live LLM]`, and it scored 8/8, because those were the offline scores.
