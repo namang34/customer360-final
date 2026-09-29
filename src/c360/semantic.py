@@ -244,10 +244,7 @@ class Retrieved:
 
 
 class SemanticMemory:
-    """Usage: semantic = SemanticMemory()          # in-memory semantic =
-    SemanticMemory("chroma/") # persistent semantic.seed() hits =
-    semantic.retrieve_policies("churn risk cancellation transfer out", k=3)
-    """
+    """Semantic memory -- bank policy text and narrative patterns, retrieved by similarity."""
 
     def __init__(self, path: str | Path | None = None, prefer_default_embedder: bool = True) -> None:
         import chromadb
@@ -285,7 +282,6 @@ class SemanticMemory:
             name=f"{name}__{suffix}", embedding_function=self.embedder
         )
 
-    # writing
 
     def upsert(self, collection, documents: Sequence[Document]) -> int:
         """Incremental upsert, content-hashed."""
@@ -318,7 +314,6 @@ class SemanticMemory:
             "patterns": self.upsert(self.patterns, PATTERNS),
         }
 
-    # reading
 
     def retrieve_policies(self, query: str, k: int = 3) -> list[Retrieved]:
         return self._query(self.policies, query, k)

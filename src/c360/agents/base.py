@@ -91,7 +91,6 @@ class PerceptionAgent(ABC):
         """Time-based trigger. Default: nothing."""
         return []
 
-    # helpers
 
     def finding(
         self,

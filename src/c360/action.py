@@ -88,7 +88,6 @@ class ActionProposer:
                 gate_reason="no significant state",
             )
 
-        # retrieve policy
         stage = self._stage(synthesis, memory)
         hits = self.semantic.retrieve_policies(self._query(synthesis, stage), k=4)
         eligible = self._eligible(hits, synthesis, stage)
@@ -139,7 +138,6 @@ class ActionProposer:
             gate_reason=f"high confidence, stage={stage}",
         )
 
-    # helpers
 
     def _query(self, synthesis: Synthesis, stage: str) -> str:
         """Build the retrieval query from the diagnosis and the signals behind it."""

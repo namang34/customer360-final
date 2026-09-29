@@ -160,7 +160,6 @@ def score_scenario(
     by_time = {row["as_of_time"]: row for row in rows}
     score = ScenarioScore(scenario=name or scenario_dir.name)
 
-    # checkpoints
     for expected in truth["checkpoints"]:
         key = expected["as_of_time"]
         got = by_time.get(key)

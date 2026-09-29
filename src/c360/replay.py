@@ -11,8 +11,6 @@ from .clock import SimClock, daily_boundaries
 from .schema import Event, LoadReport, load_events, load_json, parse_timestamp
 
 
-# Config
-
 @dataclass(frozen=True)
 class ReplayConfig:
     scenario_id: str
@@ -66,14 +64,8 @@ class ClockTick:
 Tick = EventTick | ClockTick
 
 
-# Engine
-
 class ReplayEngine:
-    """Usage: engine = ReplayEngine("data/scenario_03", speed=0) engine.load() for event in
-    engine.history:           # backstory, loaded up front episodic.record(event) for
-    tick in engine.stream():           # live, one at a time handle(tick,
-    now=engine.clock.now)
-    """
+    """Replays a scenario as a stream: history loaded up front, live events one at a time."""
 
     def __init__(
         self,
@@ -106,7 +98,6 @@ class ReplayEngine:
         )
         self._loaded = False
 
-    # loading
 
     def load(self) -> "ReplayEngine":
         entities_path = self.dir / "entities.json"
@@ -179,7 +170,6 @@ class ReplayEngine:
             if report and not report.ok:
                 self.warnings.append(f"{report.path.name}: {len(report.rejected)} row(s) rejected")
 
-    # streaming
 
     def stream(self) -> Iterator[Tick]:
         """Yield ticks in simulated-time order, advancing the clock before each one."""

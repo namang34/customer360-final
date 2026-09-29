@@ -182,8 +182,6 @@ class ResilientLLM:
         raise LLMUnavailable(f"all providers exhausted -- {detail}")
 
 
-# Construction
-
 def _build(factory, label: str, notes: list[str]):
     """Construct one provider, recording why it could not be built."""
     try:

@@ -228,7 +228,6 @@ class SynthesisAgent:
             self.llm_failures += 1
             return None
 
-    # nothing new
 
     def _carry_forward(self, as_of, board, corroboration) -> Synthesis:
         """No findings in the window -- keep believing what we believed."""
@@ -252,8 +251,6 @@ class SynthesisAgent:
             carried_forward=True,
         )
 
-
-# Scoring
 
 def score_states(findings: list[Finding]) -> dict[InferredState, float]:
     """Weighted affinity of each candidate state, given the findings in the window."""
