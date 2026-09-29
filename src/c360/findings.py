@@ -1,26 +1,4 @@
-"""
-Findings -- what a perception agent publishes to the state board.
-
-WHY A FINDING IS NOT A CHAIN OF THOUGHT
----------------------------------------
-The mid-term architecture says the perception swarm publishes "structured
-findings (not raw chain-of-thought)" to a shared state board. That constraint is
-doing real work, and it is worth being able to defend:
-
-1. The Synthesis Agent reads the board, not the raw events. If perception
-   published prose, synthesis would be re-reading four essays and re-deriving the
-   same conclusions -- which is the "single agent with a vector database" pattern
-   the Architectural Novelty criterion explicitly marks down.
-
-2. The GUARDRAIL needs to count independent source systems. That is arithmetic
-   over `source_systems`, not text analysis. If a finding were prose, the
-   corroboration rule would have to be an LLM judgement, and the problem
-   statement requires guardrails to be actual code checks.
-
-3. `event_ids` is what makes the graded `notes` field citable. Explainability
-   stops being something we ask an LLM to remember and becomes something the
-   data structure carries.
-"""
+"""Findings -- what a perception agent publishes to the state board."""
 
 from __future__ import annotations
 
@@ -32,14 +10,7 @@ from typing import Any
 
 
 class SignalStrength(str, Enum):
-    """
-    How loudly one agent is shouting.
-
-    Deliberately three coarse bands rather than a float. A perception agent
-    saying "0.73 confident" implies a precision it does not have -- these are
-    heuristics over a few dozen events, not calibrated probabilities. Three bands
-    also map cleanly onto the three confidence_bands the output schema requires.
-    """
+    """How loudly one agent is shouting."""
 
     WEAK = "weak"
     MODERATE = "moderate"
@@ -52,13 +23,7 @@ class SignalStrength(str, Enum):
 
 @dataclass(frozen=True)
 class Finding:
-    """
-    One observation by one perception agent at one moment in simulated time.
-
-    Immutable, like Event, and for the same reason: findings are read by the
-    Synthesis Agent, the Critique Agent and the guardrail. If any of them could
-    mutate one, a bug there would silently change what the others see.
-    """
+    """One observation by one perception agent at one moment in simulated time."""
 
     agent: str
     as_of: datetime

@@ -1,29 +1,4 @@
-"""
-Tracing -- LangSmith when configured, a local JSONL trace always.
-
-WHY BOTH
---------
-LangSmith is the traceability requirement in the brief, and it is genuinely good
-for inspecting prompts and latency. It is also a hosted service behind an API key
-and a network call, which makes it exactly the wrong thing to be the ONLY record
-of what a graded run did.
-
-So the local JSONL trace is the primary artifact -- always written, no
-dependencies, greppable, and something you can open in front of an examiner and
-say "here is every decision, with its inputs". LangSmith is enabled on top when
-the key is present.
-
-WHAT GOES IN A TRACE ENTRY
---------------------------
-One record per checkpoint: the state board at that moment, the synthesis result
-and why, the retrieved policy, the guardrail verdict, the critique verdict, the
-HITL routing, and the final row that went to the output file. That is enough to
-answer "why did the system do that on 8 March?" without re-running anything --
-which is the actual point of traceability, as opposed to logging.
-
-PII: every trace entry passes through the same redactor as the prompts. A trace
-file is a log line, and the brief's requirement covers log lines.
-"""
+"""Tracing -- LangSmith when configured, a local JSONL trace always."""
 
 from __future__ import annotations
 
@@ -42,12 +17,7 @@ def langsmith_enabled() -> bool:
 
 
 def configure_langsmith(project: str = "customer360") -> bool:
-    """
-    Turn on LangChain's tracing if a key is present. Safe to call always.
-
-    Returns whether it was enabled, so the run log can state it rather than
-    leaving the operator guessing.
-    """
+    """Turn on LangChain's tracing if a key is present. Safe to call always."""
     if not langsmith_enabled():
         return False
     os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
@@ -58,11 +28,8 @@ def configure_langsmith(project: str = "customer360") -> bool:
 
 
 class RunTrace:
-    """
-    Usage:
-        trace = RunTrace("out/scenario_03.trace.jsonl", redactor, tags={...})
-        trace.record(as_of, kind="checkpoint", **fields)
-        trace.close()
+    """Usage: trace = RunTrace("out/scenario_03.trace.jsonl", redactor, tags={...})
+    trace.record(as_of, kind="checkpoint", **fields) trace.close()
     """
 
     def __init__(

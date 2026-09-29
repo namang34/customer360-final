@@ -1,45 +1,4 @@
-"""
-The orchestrator -- the whole system, wired in the order the architecture says.
-
-    replay tick
-        |
-        +-- EVENT  -> episodic memory -> perception swarm (event trigger)
-        |                                     |
-        |                                     v
-        |                               state board
-        |
-        +-- CLOCK  -> perception swarm (time trigger)
-                          |
-                          v
-                    should_synthesise?  (>= 2 agents flagged -- agent-dependent trigger)
-                          |
-                          v
-                    Synthesis Agent      state + confidence
-                          |
-                          v
-                    Action Proposer      RAG over policy
-                          |
-                          v
-                    GUARDRAIL            code check, >= 2 independent sources
-                          |
-                          v
-                    Critique Agent       adversarial, one bounded retry
-                          |
-                          v
-                    HITL                 any action != no_action -> escalated
-                          |
-                          v
-                    Checkpoint           validated, written to the graded file
-
-Every arrow is a handoff of STRUCTURED data, not prose, and every stage can be
-read back out of the trace afterwards.
-
-ONE THING WORTH NOTICING about the order: the guardrail runs BEFORE the critique,
-not after. The cheap deterministic check that can definitively reject should run
-before the expensive judgement call that might not -- there is no point paying for
-a model to consider proportionality when the evidence has already failed a
-structural test.
-"""
+"""The orchestrator -- the whole system, wired in the order the architecture says."""
 
 from __future__ import annotations
 
@@ -94,11 +53,8 @@ class RunStats:
 
 
 class Pipeline:
-    """
-    Usage:
-        pipeline = Pipeline("data/scenario_03", offline=True)
-        writer, stats = pipeline.run()
-        writer.write("out/scenario_03_inferred_events.json")
+    """Usage: pipeline = Pipeline("data/scenario_03", offline=True) writer, stats =
+    pipeline.run() writer.write("out/scenario_03_inferred_events.json")
     """
 
     def __init__(
@@ -124,10 +80,7 @@ class Pipeline:
 
         self.memory = EpisodicMemory(db_path, customer_id=self.entities.get("customer_id"))
         self.board = StateBoard(self.memory)
-        # Defaults to the live/offline split, but can be pinned. A controlled
-        # offline-vs-live comparison has to hold retrieval constant: if the
-        # embedder changes at the same time as the language models, a difference
-        # in the output cannot be attributed to either.
+        # Defaults to the live/offline split, but can be pinned.
         if prefer_default_embedder is None:
             prefer_default_embedder = not offline
         self.semantic = SemanticMemory(chroma_path, prefer_default_embedder=prefer_default_embedder)
@@ -307,14 +260,7 @@ class Pipeline:
         )
 
     def _build_checkpoint(self, as_of, synthesis, proposal, hitl, verdict, critique) -> Checkpoint:
-        """
-        Assemble the graded row.
-
-        The notes field is built to satisfy the explainability requirement
-        mechanically: it always names the state, always carries the guardrail
-        verdict, and always cites event_ids when an action is proposed -- because
-        the Checkpoint constructor refuses the row otherwise.
-        """
+        """Assemble the graded row."""
         action = hitl.action
         subtype = hitl.action_subtype if action is not Action.NO_ACTION else None
 

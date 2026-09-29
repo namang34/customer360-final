@@ -1,38 +1,4 @@
-"""
-The replay engine.
-
-WHAT IT DOES
-------------
-Loads a scenario directory and turns it into a single ordered stream of "ticks"
-that the rest of the system consumes one at a time. It never hands out the whole
-file, and it never hands out anything from the future.
-
-THE CENTRAL DESIGN DECISION -- two timestamps, two jobs
--------------------------------------------------------
-Every event carries both event_time (when it happened) and ingestion_time (when
-the bank's systems learned about it). They are not interchangeable:
-
-  * RELEASE ORDER is driven by ingestion_time. That is the order a real streaming
-    system physically receives records in. An event that happened last Tuesday but
-    only arrived today arrives TODAY -- it does not retroactively insert itself
-    into last Tuesday.
-
-  * JUDGEMENT is made on event_time, as README_dataset_schema.md instructs.
-
-Ordering by ingestion time makes the project's hard rule -- no agent may ever see
-an event whose event_time is later than simulated now -- structurally impossible
-to break rather than merely tested for. Since release_time is defined as
-max(ingestion_time, event_time) (see Event.release_time), an event is released
-only at or after its own event_time. So at the instant anything is released,
-simulated now is already >= that event's event_time, for every event released so
-far. The invariant holds by construction, no matter how corrupt the input is.
-
-The alternative -- sorting everything by event_time and advancing the clock on
-event_time -- is simpler and also satisfies the rule, but it quietly pretends
-late-arriving data was available before it arrived. That is precisely the
-"messy or out-of-order data" robustness the evaluation criteria call out, so we
-model it properly.
-"""
+"""The replay engine."""
 
 from __future__ import annotations
 
@@ -94,13 +60,7 @@ class EventTick:
 
 @dataclass(frozen=True)
 class ClockTick:
-    """
-    A simulated day boundary passed. Fires the time-based trigger.
-
-    `events_since_last_tick` lets a consumer answer "was this a quiet day?"
-    without re-querying memory, which is the cheap way to detect the silence
-    that scenario_03 turns on.
-    """
+    """A simulated day boundary passed. Fires the time-based trigger."""
 
     as_of: datetime
     events_since_last_tick: int = 0
@@ -115,14 +75,10 @@ Tick = EventTick | ClockTick
 # ---------------------------------------------------------------------------
 
 class ReplayEngine:
-    """
-    Usage:
-        engine = ReplayEngine("data/scenario_03", speed=0)
-        engine.load()
-        for event in engine.history:           # backstory, loaded up front
-            episodic.record(event)
-        for tick in engine.stream():           # live, one at a time
-            handle(tick, now=engine.clock.now)
+    """Usage: engine = ReplayEngine("data/scenario_03", speed=0) engine.load() for event in
+    engine.history:           # backstory, loaded up front episodic.record(event) for
+    tick in engine.stream():           # live, one at a time handle(tick,
+    now=engine.clock.now)
     """
 
     def __init__(
@@ -172,9 +128,6 @@ class ReplayEngine:
         self.history = sorted(self.history_report.events, key=lambda e: (e.event_time, e.event_id))
 
         # Live events are sorted by RELEASE time -- see the module docstring.
-        # event_id is the tiebreak so the ordering is fully deterministic: two
-        # runs over the same file must produce identical output, which the
-        # scoring harness depends on.
         self.live = sorted(self.live_report.events, key=lambda e: (e.release_time, e.event_id))
 
         self._validate()
@@ -182,13 +135,7 @@ class ReplayEngine:
         return self
 
     def _validate(self) -> None:
-        """
-        Check the assumptions the rest of the system is entitled to make.
-
-        These are warnings, not exceptions. A scenario that violates one is still
-        runnable; we would just rather know. Turning them into crashes would mean
-        one odd row in the hidden evaluation set scores us zero for that scenario.
-        """
+        """Check the assumptions the rest of the system is entitled to make."""
         cfg = self.config
 
         # 1. History must genuinely be history.
@@ -242,16 +189,7 @@ class ReplayEngine:
     # -- streaming ----------------------------------------------------------
 
     def stream(self) -> Iterator[Tick]:
-        """
-        Yield ticks in simulated-time order, advancing the clock before each one.
-
-        MERGE ORDER AT AN IDENTICAL TIMESTAMP: events sort BEFORE the clock tick.
-        This is not arbitrary. A checkpoint stamped 2026-03-08T00:00:00Z means
-        "the state as of that instant", and the required filter is
-        event_time <= as_of -- inclusive. So anything landing exactly at midnight
-        belongs to the checkpoint being taken at that midnight, not the next one.
-        Sorting the clock tick last is what makes the code agree with the filter.
-        """
+        """Yield ticks in simulated-time order, advancing the clock before each one."""
         if not self._loaded:
             self.load()
 
@@ -276,26 +214,7 @@ class ReplayEngine:
     # -- introspection helpers (used heavily by the tests) -------------------
 
     def visible_events(self, as_of: datetime) -> list[Event]:
-        """
-        Every event the system is ALLOWED to know about at `as_of`.
-
-        Both filters are required and they guard different failures:
-
-          event_time <= as_of      -- temporal leakage. Stops an agent reasoning
-                                      about something that has not happened yet.
-                                      This is the project's stated hard rule.
-
-          release_time <= as_of    -- availability leakage. Stops an agent
-                                      reasoning about something that HAS happened
-                                      but has not reached the bank yet. Without
-                                      this, a late-arriving event would appear to
-                                      have been known days before it turned up,
-                                      which is a subtler way of seeing the future.
-
-        This function is the reference definition. Episodic memory in step 3 must
-        implement exactly this predicate, with `as_of` as a mandatory argument so
-        that a caller cannot forget to pass it.
-        """
+        """Every event the system is ALLOWED to know about at `as_of`."""
         if not self._loaded:
             self.load()
         return [
@@ -306,24 +225,7 @@ class ReplayEngine:
 
     @property
     def checkpoint_times(self) -> list[datetime]:
-        """
-        Every timestamp at which a checkpoint row will be emitted.
-
-        Deliberately CLAMPED to [simulated_start, simulated_end] rather than
-        extended to cover the last event.
-
-        Why: scenarios 01 and 02 each have two live events that arrive after
-        simulated_end (their last events land at Apr 15 21:31 and 21:47 against a
-        midnight simulated_end). simulated_end defines the evaluation window, so
-        emitting extra rows at timestamps outside it risks a strict scorer
-        counting them as spurious. Those trailing events are still streamed and
-        still enter memory -- they simply fall after the final checkpoint, which
-        costs nothing: the latest graded checkpoint in any scenario is Apr 10.
-
-        The consequence is that all three scenarios emit exactly the same 74 rows,
-        one per day of the configured window, which also makes output files
-        directly comparable.
-        """
+        """Every timestamp at which a checkpoint row will be emitted."""
         return list(
             daily_boundaries(
                 self.config.simulated_start, self.config.simulated_end, self.tick_interval

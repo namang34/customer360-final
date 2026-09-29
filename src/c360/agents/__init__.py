@@ -1,12 +1,4 @@
-"""
-The perception swarm.
-
-Four agents, disjoint source systems, no interdependency. `run_swarm` is the only
-place they are invoked together, and it deliberately does nothing clever: no
-ordering, no passing one agent's output to another, no early exit. That is what
-makes the "swarm" claim in the architecture true rather than aspirational -- and
-a test shuffles the agent order to prove the result does not depend on it.
-"""
+"""The perception swarm."""
 
 from __future__ import annotations
 
@@ -41,13 +33,7 @@ def default_swarm() -> list[PerceptionAgent]:
 def run_swarm_on_event(
     agents: Sequence[PerceptionAgent], event, as_of: datetime, ctx: PerceptionContext
 ) -> list[Finding]:
-    """
-    Event-based trigger. Only agents that own the event's source system run.
-
-    The routing is by source_system alone, so an event can reach at most one
-    agent. That disjointness is what lets the guardrail treat two agents' findings
-    as independent evidence.
-    """
+    """Event-based trigger. Only agents that own the event's source system run."""
     findings: list[Finding] = []
     for agent in agents:
         if agent.handles(event):

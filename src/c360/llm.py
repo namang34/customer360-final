@@ -1,44 +1,4 @@
-"""
-LLM access -- one seam, two providers, and an offline fallback.
-
-WHY AN ABSTRACTION RATHER THAN CALLING GEMINI DIRECTLY
-------------------------------------------------------
-Three reasons, all of them practical:
-
-1. THE TESTS MUST RUN WITHOUT A NETWORK OR A KEY. A test suite that needs a live
-   free-tier API is a test suite that fails at the worst moment, gives different
-   answers on different runs, and cannot be run by an examiner. Every component
-   here works with `NullLLM`, which is deterministic; the real models improve
-   quality without being load-bearing for correctness.
-
-2. FREE TIER MEANS RATE LIMITS. Gemini flash-lite and Groq Llama have per-minute
-   caps. Having one place that retries, backs off and can fail over from one
-   provider to the other is much better than that logic being sprinkled across
-   four agents.
-
-3. TWO MODEL TIERS. The brief allocates flash-lite to volume work and a stronger
-   model to heavy reasoning. `get_llm("fast")` and `get_llm("reasoning")` make
-   that a configuration decision rather than a hard-coded model name in an agent.
-
-WHAT THE SYSTEM USES AN LLM FOR -- AND WHAT IT DELIBERATELY DOES NOT
---------------------------------------------------------------------
-Used for free text, where language understanding is the actual job: support
-ticket bodies, in-app search queries, consented social posts, and the synthesis /
-action / critique reasoning steps.
-
-NOT used for arithmetic. Spend rates, income drops, balance trends, login
-frequency and the corroboration count are computed in code. That is not laziness:
-
-  - The guardrail is required by the problem statement to be an actual code
-    check, not a prompt asking a model to be careful.
-  - An LLM asked "is 0.14 logins/day a big drop from 0.9?" will usually be right
-    and occasionally be confidently wrong, with no way to tell which. The same
-    comparison in Python is right every time, costs nothing, and can be shown to
-    an examiner as a line of code.
-
-Being able to state that division of labour clearly is worth more in a viva than
-routing everything through a model.
-"""
+"""LLM access -- one seam, two providers, and an offline fallback."""
 
 from __future__ import annotations
 
@@ -50,11 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 # Model choices, overridable from .env so no code change is needed to swap them.
-# Defaults verified against the live provider catalogues on 18 Sept 2026. The
-# originals -- gemini-3.1-pro and llama-3.3-70b-versatile -- had both been
-# retired, so a clean clone with valid keys still answered 404 on every call.
-# Model names are configuration and they rot; `python compare_live.py --models`
-# lists what a given key can actually reach.
+# Defaults verified against the live provider catalogues on 18 Sept 2026.
 FAST_MODEL = os.getenv("C360_FAST_MODEL", "gemini-3.1-flash-lite")
 REASONING_MODEL = os.getenv("C360_REASONING_MODEL", "gemini-3.1-flash-lite")
 GROQ_MODEL = os.getenv("C360_GROQ_MODEL", "openai/gpt-oss-20b")
@@ -95,14 +51,7 @@ class LLM(Protocol):
 # ---------------------------------------------------------------------------
 
 class NullLLM:
-    """
-    Returns nothing useful, on purpose.
-
-    Every caller in this system must supply a deterministic fallback for when the
-    LLM is unavailable, and NullLLM is how that path gets exercised in the tests.
-    It raises rather than inventing an answer: a stub that quietly returns
-    plausible-looking JSON would let a broken fallback pass its own tests.
-    """
+    """Returns nothing useful, on purpose."""
 
     provider = "null"
     model = "none"
@@ -116,18 +65,7 @@ class NullLLM:
 # ---------------------------------------------------------------------------
 
 def message_text(content: Any) -> str:
-    """
-    Pull the text out of a chat response.
-
-    LangChain returns `.content` as a plain string for some providers and as a
-    LIST OF CONTENT BLOCKS for others -- Gemini returns
-    [{"type": "text", "text": "...", "extras": {...}}]. The original code did
-    `str(content)` for the non-string case, which stringified the Python list
-    and handed the JSON parser `{'type': 'text', ...}` -- Python repr, single
-    quotes, not JSON. Every model call in the system therefore failed to parse
-    and fell back to its deterministic path, silently, while the model was
-    answering correctly all along.
-    """
+    """Pull the text out of a chat response."""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -155,12 +93,7 @@ class GeminiLLM:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         self.model = model
-        # timeout: without one a hung request blocks the replay forever. An
-        # ambient system that stops advancing is worse than one that misses a
-        # classification, because the fallback is designed to cover the second.
-        # max_retries=0: ResilientLLM already retries with backoff and then fails
-        # over. Leaving the client's own retries on stacks two loops and turns a
-        # 30-second failure into several minutes.
+        # timeout: without one a hung request blocks the replay forever.
         self._client = ChatGoogleGenerativeAI(
             model=model, temperature=temperature, timeout=REQUEST_TIMEOUT, max_retries=0
         )
@@ -191,15 +124,7 @@ class GroqLLM:
 # ---------------------------------------------------------------------------
 
 class ResilientLLM:
-    """
-    Retries with backoff, then fails over to a second provider, then gives up.
-
-    Giving up is a first-class outcome, not an exception that kills the run. A
-    73-day replay that dies on day 40 because a free-tier quota reset is worse
-    than one that completes with a few checkpoints decided by the deterministic
-    fallback -- and the run log records exactly which ones, so the evaluation
-    write-up can report it honestly.
-    """
+    """Retries with backoff, then fails over to a second provider, then gives up."""
 
     def __init__(
         self,
@@ -259,13 +184,7 @@ class ResilientLLM:
                     if attempt < self.attempts - 1:
                         time.sleep(self.base_delay * (2**attempt))
         self.failures += 1
-        # Carry the provider's own error into the message. "all providers
-        # exhausted" alone says a call failed but not why, which is the
-        # difference between a quota problem, a bad model name and a network
-        # fault -- three very different fixes.
-        # One error per distinct provider/model, not the last N. The failover
-        # means the final errors are always the fallback's, which hides why the
-        # primary was abandoned in the first place.
+        # Carry the provider's own error into the message.
         recent = [c for c in self.calls[-(self.attempts * 2):] if c.error]
         seen: dict[str, str] = {}
         for call in recent:
@@ -293,16 +212,7 @@ def get_llm(
     allow_network: bool | None = None,
     problems: list[str] | None = None,
 ) -> LLM:
-    """
-    Build a client for a role, or NullLLM if nothing is configured.
-
-    role="fast"      high-volume text classification -> flash-lite
-    role="reasoning" synthesis / action / critique   -> pro, failing over to Groq
-
-    Set C360_OFFLINE=1 to force NullLLM -- used by the test suite so a machine
-    that happens to have keys in its environment still runs the deterministic
-    path rather than silently making paid-tier-shaped API calls during pytest.
-    """
+    """Build a client for a role, or NullLLM if nothing is configured."""
     if allow_network is None:
         allow_network = os.getenv("C360_OFFLINE", "").strip() not in ("1", "true", "yes")
     if not allow_network:
@@ -311,12 +221,7 @@ def get_llm(
     has_gemini = bool(os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
     has_groq = bool(os.getenv("GROQ_API_KEY"))
 
-    # Each provider is built independently and its failure recorded rather than
-    # raised. The earlier version constructed both inside one try/except, so a
-    # missing langchain-groq -- the FALLBACK -- also took out Gemini, the
-    # primary, and the run went silently deterministic with keys sitting right
-    # there in .env. A provider that cannot be built is one provider lost, not
-    # the whole live path.
+    # Each provider is built independently and its failure recorded rather than raised.
     notes: list[str] = [] if problems is None else problems
     model = REASONING_MODEL if role == "reasoning" else FAST_MODEL
 
@@ -340,14 +245,7 @@ _JSON_BLOCK = re.compile(r"\{.*\}", re.DOTALL)
 
 
 def parse_json_response(text: str) -> dict[str, Any]:
-    """
-    Pull a JSON object out of a model response.
-
-    Models wrap JSON in ```json fences, prepend "Here's the analysis:", or add a
-    trailing sentence -- despite being told not to. Rather than trusting the
-    instruction, extract the outermost {...} and parse that. A response with no
-    JSON at all raises, and the caller falls back to its deterministic path.
-    """
+    """Pull a JSON object out of a model response."""
     if not text:
         raise ValueError("empty response")
     cleaned = text.strip()

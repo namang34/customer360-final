@@ -1,39 +1,4 @@
-"""
-Synthesis Agent -- correlation layer.
-
-Reads the STATE BOARD, never raw events. That separation is the point of the
-architecture: four perception agents have already turned ~490 raw events into a
-handful of structured findings, and synthesis' job is to decide what story those
-findings add up to. If it re-read the events it would be re-doing perception's
-work, and the swarm would be decoration.
-
-TWO DECISIONS, MADE SEPARATELY
-------------------------------
-    WHAT is happening   -> inferred_state   (which narrative fits the evidence)
-    HOW SURE are we     -> confidence_band  (is the evidence strong and broad)
-
-Keeping them apart matters. Scenario_03's ground truth expects `churn_risk` with
-LOW confidence on 15 February and the SAME state with HIGH confidence on 8 March.
-The story did not change; the weight of evidence did. A system that fused the two
-would have to either name the state late (losing the early checkpoint) or claim
-confidence early (failing the "do not overreact" test).
-
-WHERE THE LLM SITS
-------------------
-Affinity scoring and the confidence bands are code. The LLM is used to ADJUDICATE
-between the top candidate states when they are close, and to write the rationale.
-That is a deliberate division:
-
-  - "Which of these two narratives better explains a hospital bill, a benefits
-    credit and a hardship search?" is a judgement, and judgement is what a
-    language model is for.
-  - "Are there at least two STRONG findings across at least three source systems?"
-    is arithmetic, and arithmetic in a prompt is how you get a confidently wrong
-    answer you cannot audit.
-
-When no LLM is available the deterministic winner stands, and every test in the
-suite runs that path.
-"""
+"""Synthesis Agent -- correlation layer."""
 
 from __future__ import annotations
 
@@ -47,16 +12,8 @@ from .llm import LLM, LLMUnavailable, NullLLM, complete_json
 from .schema import ConfidenceBand, InferredState
 from .state_board import Corroboration, StateBoard
 
-# ---------------------------------------------------------------------------
-# Signal -> state affinity
-# ---------------------------------------------------------------------------
-# Weights are per (state, signal). A finding contributes
+# Signal -> state affinity Weights are per (state, signal). A finding contributes
 # strength.score * weight to that state's total.
-#
-# Several signals deliberately point at more than one state -- income_disruption
-# is equally consistent with maternity leave, job loss and illness. That ambiguity
-# is real, and resolving it is exactly the job of the correlating layer: it is the
-# OTHER signals in the window that disambiguate.
 
 STATE_AFFINITY: dict[InferredState, dict[str, float]] = {
     InferredState.MEDICAL_HARDSHIP: {
@@ -135,61 +92,14 @@ LIFE_EVENT_AFFINITY: dict[str, tuple[InferredState, float]] = {
     "retirement": (InferredState.RETIREMENT_TRANSITION, 3),
 }
 
-# ---------------------------------------------------------------------------
-# Confidence thresholds
-# ---------------------------------------------------------------------------
-# CALIBRATED AGAINST THE THREE PRACTICE SCENARIOS. Be honest about this in the
-# write-up: the mid-term listed "precise confidence-band thresholds" as an open
-# question to be settled against the practice checkpoints, and this is that work.
-# With only eight graded checkpoints to fit, there is real overfitting risk, and
-# the evaluation section should say so rather than present these as derived from
-# first principles.
-#
-# The rule in one line: TWO INDEPENDENT STRONG SIGNALS ACROSS THREE INDEPENDENT
-# SOURCE SYSTEMS is high confidence; two strong across two systems is medium;
-# anything less is low.
-#
-# Why it lands correctly on all eight:
-#
-#   s01 15 Feb  healthcare spend only, nothing STRONG          -> low     (expected low)
-#   s01 12 Mar  major bill + benefits credit, 2 systems        -> medium  (expected medium)
-#   s01 26 Mar  + savings drawdown, hardship search + ticket   -> high    (expected high)
-#   s02 20 Feb  income dip + one baby purchase, nothing STRONG -> low     (expected low)
-#   s02 27 Mar  dependents change + daycare SI, 4 systems      -> high    (expected high)
-#   s03 15 Feb  denied complaint (1 STRONG) + usage dip        -> low     (expected low)
-#   s03 08 Mar  cancellation + self-transfer + denial, 3 sys   -> high    (expected high)
-#   s03 10 Apr  sweeps, stopped SIs, zero card use             -> high    (expected high)
-#
-# The load-bearing choice is requiring STRONG findings rather than counting
-# everything: it is what keeps 15 February low in all three scenarios while the
-# evidence is still circumstantial.
+# Confidence thresholds CALIBRATED AGAINST THE THREE PRACTICE SCENARIOS.
 HIGH_MIN_STRONG = 2
 HIGH_MIN_SOURCES = 3
 MEDIUM_MIN_STRONG = 2
 MEDIUM_MIN_SOURCES = 2
 
-# DECISIVE signals: the customer has DONE something deliberate, as opposed to a
-# spending pattern or a rate that we inferred about them.
-#
-# Clicking "cancel my standing instructions", filing a KYC dependents change,
-# opening a hardship case, typing a question into search, moving money to your own
-# account at another bank -- these are acts of intent. A hospital charge and a
-# falling login rate are circumstantial: real evidence, but things that HAPPENED
-# to the customer or that we measured about them.
-#
-# The distinction earns its place on lead time. The three ground truths all award
-# high confidence at the moment the customer acts:
-#
-#   s01  26 Mar  opens a payment-arrangements case (after weeks of medical cost)
-#   s02  27 Mar  files a KYC dependents increase (after weeks of baby spending)
-#   s03  08 Mar  cancels standing instructions, moves savings out
-#
-# and all three withhold it while the evidence is only circumstantial -- which is
-# exactly scenario_01 on 12 March: an $8,500 hospital bill and replacement income,
-# both strong, both circumstantial, and correctly still MEDIUM.
-#
-# Without this, high confidence arrives only once a third source system joins,
-# which in scenario_03 is one day before the deadline rather than three.
+# DECISIVE signals: the customer has DONE something deliberate, as opposed to a spending
+# pattern or a rate that we inferred about them.
 DECISIVE_SIGNALS = frozenset({
     "cancellation_feature_used",
     "dependents_increase",
@@ -203,10 +113,8 @@ DECISIVE_SIGNALS = frozenset({
     "search_intent",
 })
 
-# How long a belief survives with no supporting evidence at all before its
-# confidence steps down one band. The mid-term flagged decay policy as an open
-# question; 60 days is chosen to be longer than any gap inside a graded window,
-# so it never fires on the practice data and exists for the hidden set.
+# How long a belief survives with no supporting evidence at all before its confidence
+# steps down one band.
 CONFIDENCE_DECAY_DAYS = 60
 
 
@@ -233,10 +141,8 @@ class Synthesis:
 
 
 class SynthesisAgent:
-    """
-    Usage:
-        agent = SynthesisAgent(llm=get_llm("reasoning"))
-        result = agent.synthesise(as_of, board)
+    """Usage: agent = SynthesisAgent(llm=get_llm("reasoning")) result =
+    agent.synthesise(as_of, board)
     """
 
     def __init__(self, llm: LLM | None = None, window_days: float | None = None) -> None:
@@ -262,24 +168,13 @@ class SynthesisAgent:
         state, rationale, decided_by = self._choose(ranked, findings, corroboration)
 
         # Confidence and corroboration are judged ONLY on evidence that actually
-        # supports the chosen state.
-        #
-        # This matters more than it looks. Using every finding in the window would
-        # let unrelated noise inflate confidence in a story it says nothing about:
-        # in scenario_01 a $12,000 tuition transfer on ach_wire would have counted
-        # as a third "independent source system" corroborating MEDICAL HARDSHIP,
-        # pushing the 12 March checkpoint to high when ground truth expects medium.
-        # A red herring cannot be allowed to strengthen a conclusion merely by
-        # existing nearby.
+        # supports the chosen state. This matters more than it looks.
         supporting = [f for f in findings if _supports(state, f)]
         corroboration = _restrict(corroboration, supporting)
         band = confidence_for(supporting, corroboration)
 
-        # Monotonic belief: a state already held at HIGH does not silently slip
-        # back to LOW because one quiet fortnight thinned the window. Ground truth
-        # keeps scenario_03 at high from 8 March through 10 April, and a system
-        # that wobbled between bands would fail the later checkpoint despite
-        # having been right earlier.
+        # Monotonic belief: a state already held at HIGH does not silently slip back to
+        # LOW because one quiet fortnight thinned the window.
         previous = previous_state
         if previous.inferred_state is state and _band_rank(previous.confidence_band) > _band_rank(band):
             band = previous.confidence_band
@@ -305,10 +200,7 @@ class SynthesisAgent:
         top_state, top_score = ranked[0]
         runner_up = ranked[1] if len(ranked) > 1 else None
 
-        # The LLM is only consulted when the top two are genuinely close. When
-        # one narrative dominates, an extra API call buys nothing but latency,
-        # quota and a chance to be wrong -- and on free tier, quota is the
-        # scarcest thing we have.
+        # The LLM is only consulted when the top two are genuinely close.
         contested = runner_up is not None and runner_up[1] >= top_score * 0.75
         if contested and not isinstance(self.llm, NullLLM):
             chosen = self._ask_llm([r[0] for r in ranked[:3]], findings)
@@ -341,14 +233,7 @@ class SynthesisAgent:
     # -- nothing new -------------------------------------------------------
 
     def _carry_forward(self, as_of, board, corroboration) -> Synthesis:
-        """
-        No findings in the window -- keep believing what we believed.
-
-        Required by the problem statement: an inference made once "should still be
-        available and correctly weighted weeks later", not recomputed from
-        scratch. It is also why a 74-day run costs a handful of LLM calls rather
-        than 74: on a quiet day there is nothing to reason about.
-        """
+        """No findings in the window -- keep believing what we believed."""
         previous = board.current_state(as_of)
         band = previous.confidence_band
         rationale = "No new signals; carrying forward the previous assessment."
@@ -375,14 +260,7 @@ class SynthesisAgent:
 # ---------------------------------------------------------------------------
 
 def score_states(findings: list[Finding]) -> dict[InferredState, float]:
-    """
-    Weighted affinity of each candidate state, given the findings in the window.
-
-    A signal counts ONCE per state no matter how many findings carry it. Without
-    that, five card purchases at a pharmacy would out-score a KYC dependents
-    change -- volume would beat meaning, which is precisely the failure mode the
-    red herrings are designed to exploit.
-    """
+    """Weighted affinity of each candidate state, given the findings in the window."""
     best_strength: dict[str, SignalStrength] = {}
     for finding in findings:
         current = best_strength.get(finding.signal)
@@ -418,13 +296,8 @@ def score_states(findings: list[Finding]) -> dict[InferredState, float]:
 
 
 def confidence_for(findings: list[Finding], corroboration: Corroboration) -> ConfidenceBand:
-    """
-    The confidence band. See the threshold block at the top of this module for the
+    """The confidence band. See the threshold block at the top of this module for the
     calibration and its honest caveat.
-
-    Counting DISTINCT strong signals, not strong findings: three separate
-    healthcare purchases are one kind of evidence seen three times, not three
-    kinds of evidence.
     """
     strong = {f.signal for f in findings if f.strength is SignalStrength.STRONG}
     sources = corroboration.independent_source_count
@@ -432,11 +305,9 @@ def confidence_for(findings: list[Finding], corroboration: Corroboration) -> Con
 
     if len(strong) >= HIGH_MIN_STRONG:
         # Two routes to high confidence, and they are alternatives not additions:
-        #   breadth  -- three independent source systems agree, or
-        #   intent   -- two systems agree AND one of the strong signals is the
-        #               customer doing something deliberate.
-        # Requiring the decisive signal to be among the STRONG ones matters: a
-        # weak search query should not be able to promote a whole narrative.
+        # breadth  -- three independent source systems agree, or intent   -- two systems
+        # agree AND one of the strong signals is the customer doing something
+        # deliberate.
         if sources >= HIGH_MIN_SOURCES or (sources >= MEDIUM_MIN_SOURCES and decisive):
             return ConfidenceBand.HIGH
     if len(strong) >= MEDIUM_MIN_STRONG and sources >= MEDIUM_MIN_SOURCES:
@@ -445,12 +316,7 @@ def confidence_for(findings: list[Finding], corroboration: Corroboration) -> Con
 
 
 def _rule_rationale(state: InferredState, findings: list[Finding], corroboration) -> str:
-    """
-    A one-sentence explanation naming real signals and real event ids.
-
-    Built from the finding metadata rather than written by a model, so the
-    graded `notes` field carries citations whether or not an LLM was available.
-    """
+    """A one-sentence explanation naming real signals and real event ids."""
     relevant = [f for f in findings if _supports(state, f)]
     relevant.sort(key=lambda f: -f.strength.score)
     named = ", ".join(f.signal.replace("_", " ") for f in relevant[:3]) or "weak indicators"
@@ -473,22 +339,7 @@ HYSTERESIS_MARGIN = {
 
 
 def _apply_hysteresis(ranked, previous) -> list:
-    """
-    Make an established belief sticky in proportion to how well-evidenced it was.
-
-    WHY: without this, a single loud event can knock over a conclusion built from
-    weeks of corroborated evidence. Scenario_03's $5,200 tax refund lands on
-    28 February and scores towards WEALTH_GROWTH_OR_WINDFALL; by 8 March the
-    system holds CHURN_RISK at high confidence, and a windfall must not be able to
-    rewrite that story on its own.
-
-    At LOW confidence the margin is 1.0 -- no stickiness at all. That is
-    deliberate: early in a narrative the system SHOULD change its mind as evidence
-    arrives, and scenario_02 legitimately moves through churn_risk and
-    job_loss_or_income_disruption before the baby purchases make
-    new_child_life_event the better explanation. Pretending to be stable while
-    genuinely uncertain would be worse than visibly updating.
-    """
+    """Make an established belief sticky in proportion to how well-evidenced it was."""
     if previous.is_default or not ranked:
         return ranked
     incumbent = previous.inferred_state

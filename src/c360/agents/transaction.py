@@ -1,16 +1,5 @@
-"""
-Transaction Agent -- card_payments, core_banking_ledger, instant_payments,
-ach_wire, trading_brokerage.
-
-The widest agent by source count, and the only one that can corroborate itself:
-a salary stopping (core_banking_ledger) and money leaving for a rival bank
-(instant_payments) are two genuinely independent streams of evidence even though
-one agent noticed both. That is exactly why the guardrail counts SOURCE SYSTEMS
-rather than agents.
-
-Everything in here is arithmetic, not language. Whether $8,500 at a hospital
-billing department is a large medical expense is a comparison, and a comparison
-belongs in code where it is right every time and can be pointed at during a viva.
+"""Transaction Agent -- card_payments, core_banking_ledger, instant_payments, ach_wire,
+trading_brokerage.
 """
 
 from __future__ import annotations
@@ -96,19 +85,8 @@ class TransactionAgent(PerceptionAgent):
                     )
 
             if category in BABY_CATEGORIES or any(h in merchant for h in BABY_MERCHANT_HINTS):
-                # ONE baby purchase is a gift. A PATTERN is a household change.
-                #
-                # This distinction is doing real work. A single $250 trip to a
-                # baby store is genuinely ambiguous -- a shower present, a gift
-                # for a niece -- and treating it as strong evidence would be
-                # exactly the over-reading the red herrings punish. But repeat
-                # purchases at baby retailers over weeks are not a coincidence.
-                #
-                # It is also what earns the lead time in scenario_02: the second
-                # purchase (Mothercare, 2 March) turns the signal strong, which
-                # combined with the daycare standing instruction on 18 March
-                # reaches high confidence nine days before the graded checkpoint,
-                # rather than one day after the KYC filing finally confirms it.
+                # ONE baby purchase is a gift. A PATTERN is a household change. This
+                # distinction is doing real work.
                 prior = self._baby_purchase_count(as_of, ctx, event)
                 findings.append(
                     self.finding(
@@ -217,19 +195,7 @@ class TransactionAgent(PerceptionAgent):
         return count
 
     def _new_commitment(self, event, as_of, ctx, txn_type, amount) -> list[Finding]:
-        """
-        A standing instruction of a type this customer has never had before.
-
-        The mirror image of `_standing_instruction_stopped`, and just as
-        informative. Taking on a NEW recurring obligation is a statement about a
-        changed life: scenario_02's EVT_000363 is a $1,200/month daycare_payment
-        appearing on 18 March, which is about as unambiguous a new-child signal as
-        a ledger can produce.
-
-        "Never before" is checked against the customer's whole visible history, so
-        the ordinary monthly rent payment -- which has run for months -- never
-        trips it.
-        """
+        """A standing instruction of a type this customer has never had before."""
         prior = {
             (e.payload.get("transaction_type") or "").lower()
             for e in ctx.memory.events_as_of(as_of, since_days=400, source_systems=[LEDGER])
@@ -257,14 +223,7 @@ class TransactionAgent(PerceptionAgent):
         is_self = ctx.redactor.counterparty_is_customer(event.payload)
 
         if is_self:
-            # THE CHURN TELL. Money moving to an account the customer owns at
-            # another institution is categorically different from paying a third
-            # party -- it is relocation of the relationship, not consumption.
-            #
-            # This is also why PII redaction tokenises rather than deletes: the
-            # counterparty reads "<CUSTOMER_NAME> - Chase Bank" after scrubbing,
-            # so the agent can still tell it is a self-transfer without ever
-            # being shown the name.
+            # THE CHURN TELL.
             findings.append(
                 self.finding(
                     as_of,
@@ -337,13 +296,7 @@ class TransactionAgent(PerceptionAgent):
         return findings
 
     def _income_disruption(self, as_of, ctx) -> list[Finding]:
-        """
-        Has regular income dropped against this customer's own history?
-
-        Compares the most recent salary credit to the median of the ones before
-        it. Median rather than mean because a single bonus month would drag a mean
-        upward and mask a genuine cut.
-        """
+        """Has regular income dropped against this customer's own history?"""
         deposits = [
             e
             for e in ctx.memory.events_as_of(as_of, since_days=180, source_systems=[LEDGER])
@@ -378,15 +331,7 @@ class TransactionAgent(PerceptionAgent):
         ]
 
     def _standing_instruction_stopped(self, as_of, ctx) -> list[Finding]:
-        """
-        A standing instruction that was regular and has now FAILED TO OCCUR.
-
-        There is no event for "the rent did not go out this month". This is the
-        clearest example of why the daily time-based tick is load-bearing rather
-        than decorative: in scenario_03 the customer cancels his standing
-        instructions on 4 March, and the only trace in the ledger is the silence
-        where 1 April's payments should have been.
-        """
+        """A standing instruction that was regular and has now FAILED TO OCCUR."""
         instructions = [
             e
             for e in ctx.memory.events_as_of(as_of, since_days=180, source_systems=[LEDGER])
@@ -410,32 +355,8 @@ class TransactionAgent(PerceptionAgent):
             if typical <= 0:
                 continue
             silence = (as_of - events[-1].event_time).days
-            # TWO full missed cycles, not one.
-            #
-            # HONEST NOTE ON THIS THRESHOLD -- read before tuning it.
-            #
-            # All three practice scenarios are MISSING their February standing
-            # instructions entirely. Every customer's ledger runs
-            # 1 Nov, 1 Dec, 1 Jan, [nothing in February], 1 Mar. That is a
-            # data-generation artifact, not customer behaviour: scenario_01 and
-            # scenario_02 resume normally on 1 April, and only scenario_03 -- who
-            # actually cancelled on 4 March -- stops for good.
-            #
-            # With a one-missed-cycle threshold this detector fired in ALL THREE
-            # scenarios in mid-February, including the two customers who are not
-            # churning, and pushed scenario_03's 15 February checkpoint to high
-            # confidence when ground truth expects low.
-            #
-            # The artifact and the real signal are the same SHAPE -- one missed
-            # monthly cycle -- so no threshold separates them. Requiring two full
-            # missed cycles makes the detector conservative and silences the false
-            # positives; the cost is that it never fires on the practice data at
-            # all, because scenario_03's cancellation on 4 March leaves only one
-            # missed cycle (1 April) before simulated_end on 15 April.
-            #
-            # The detector is kept because it is correct in principle and would
-            # matter on real data, and the evaluation write-up reports plainly
-            # that it contributes nothing to these three scores.
+            # TWO full missed cycles, not one. HONEST NOTE ON THIS THRESHOLD -- read
+            # before tuning it.
             if silence >= typical * 2:
                 stopped.append(txn_type)
                 evidence.append(events[-1])
@@ -445,12 +366,6 @@ class TransactionAgent(PerceptionAgent):
             return []
 
         # STRONG only once the instruction is TWO full cadences overdue.
-        #
-        # One missed cycle is ambiguous -- a weekend, a bank holiday, or (as in
-        # scenario_03's February, where the seed data simply contains no standing
-        # instructions at all) a gap in the record. Two consecutive misses is a
-        # pattern. Treating a single miss as STRONG made 15 February in
-        # scenario_03 read as high confidence when the ground truth expects low.
         worst = max(overdue_ratios)
         strength = SignalStrength.STRONG if worst >= 2.0 else SignalStrength.MODERATE
         return [

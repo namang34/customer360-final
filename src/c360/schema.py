@@ -1,17 +1,4 @@
-"""
-Event schema, parsing, and the fixed output enums.
-
-WHY THIS FILE EXISTS
---------------------
-Everything downstream (memory, agents, output writer) depends on events having a
-single, trustworthy in-memory shape with REAL datetime objects rather than
-strings. Comparing ISO-8601 strings happens to work for this dataset because all
-timestamps are UTC with identical formatting -- but that is luck, not a
-guarantee. One row written as "+00:00" instead of "Z", or a non-UTC offset, and
-string comparison silently produces the wrong ordering. Since correct temporal
-ordering is the single most important property of this system, we parse once,
-here, into timezone-aware UTC datetimes and never compare raw strings again.
-"""
+"""Event schema, parsing, and the fixed output enums."""
 
 from __future__ import annotations
 
@@ -67,11 +54,8 @@ class HitlStatus(str, Enum):
     HUMAN_MODIFIED = "human_modified"
 
 
-# The nine source systems in the dataset. The README's payload table has eight
-# rows only because instant_payments and ach_wire share a payload shape.
-# We keep this as a plain
-# frozenset rather than an Enum on purpose: an unrecognised source_system in the
-# hidden evaluation set must NOT crash the run. We flag it and carry on.
+# The nine source systems in the dataset. The README's payload table has eight rows only
+# because instant_payments and ach_wire share a payload shape.
 KNOWN_SOURCE_SYSTEMS = frozenset({
     "card_payments",
     "instant_payments",
@@ -105,20 +89,7 @@ class EventParseError(ValueError):
 
 
 def parse_timestamp(value: str, field_name: str) -> datetime:
-    """
-    Parse an ISO-8601 timestamp into a timezone-AWARE UTC datetime.
-
-    Two details that matter:
-
-    1. Python's fromisoformat() did not accept a trailing "Z" before 3.11, so we
-       normalise it to "+00:00" first. This keeps the code working on older
-       interpreters and makes the intent explicit.
-    2. If a timestamp arrives with no timezone at all, we do NOT silently assume
-       UTC -- a naive datetime compared against an aware one raises TypeError in
-       Python, which would blow up deep inside a memory query. We attach UTC here
-       and it is recorded as an assumption, so the failure surface is one line in
-       one file rather than an arbitrary comparison somewhere downstream.
-    """
+    """Parse an ISO-8601 timestamp into a timezone-AWARE UTC datetime."""
     if not isinstance(value, str):
         raise EventParseError(f"{field_name} is not a string: {value!r}")
     text = value.strip()
@@ -135,14 +106,7 @@ def parse_timestamp(value: str, field_name: str) -> datetime:
 
 @dataclass(frozen=True)
 class Event:
-    """
-    One event, parsed and immutable.
-
-    frozen=True is deliberate. Events are the ground truth of the whole system
-    and get passed to four perception agents. If any of them could mutate an
-    event in place, a bug there would silently corrupt what every later agent
-    and the episodic store sees. Immutability makes that class of bug impossible.
-    """
+    """One event, parsed and immutable."""
 
     event_id: str
     event_time: datetime
@@ -158,21 +122,7 @@ class Event:
 
     @property
     def release_time(self) -> datetime:
-        """
-        The moment this event becomes VISIBLE to the system.
-
-        Normally that is ingestion_time: the event happened, then some time later
-        the bank's systems received it. We take max(ingestion_time, event_time)
-        rather than ingestion_time alone as a defensive floor.
-
-        Why: an event whose ingestion_time precedes its event_time is physically
-        impossible -- it would mean the system received the record before the
-        thing happened. If such a row appears in the hidden evaluation data
-        (corrupt timestamp, timezone bug upstream), releasing it at ingestion_time
-        would hand an agent an event from the future, breaking the one rule the
-        whole design rests on. Taking the max holds that row back until its own
-        event_time, so the rule survives bad input instead of depending on it.
-        """
+        """The moment this event becomes VISIBLE to the system."""
         return max(self.ingestion_time, self.event_time)
 
     @property
@@ -277,26 +227,13 @@ def iter_jsonl(path: Path) -> Iterator[tuple[int, str]]:
 
 
 def load_events(path: Path, strict: bool = False) -> LoadReport:
-    """
-    Read a .jsonl event file into a LoadReport.
-
-    strict=False (default) is the RIGHT behaviour for the graded run: one
-    malformed row out of ~490 should cost us that row, not the entire scenario.
-    The rejected rows are collected and reported rather than swallowed, so a
-    silent data problem still shows up loudly in the run log.
-
-    strict=True is for the test suite, where a malformed row means our parser is
-    wrong and we want it to fail immediately.
-    """
+    """Read a .jsonl event file into a LoadReport."""
     path = Path(path)
     report = LoadReport(path=path)
     seen_ids: set[str] = set()
 
     if not path.exists():
-        # A missing file is reported, not raised (unless strict). A scenario with
-        # no history_seed is unusual but perfectly runnable -- the customer simply
-        # has no backstory. Crashing here would turn a thin scenario into a zero
-        # score. Under strict=True (the test suite) it is a hard error.
+        # A missing file is reported, not raised (unless strict).
         if strict:
             raise FileNotFoundError(path)
         report.rejected.append((0, f"file not found: {path}", ""))

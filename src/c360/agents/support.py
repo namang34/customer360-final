@@ -1,30 +1,4 @@
-"""
-Support Agent -- support_logs only.
-
-The most language-heavy agent, and the one where an LLM genuinely earns its place.
-A support ticket is free prose written by a person; `resolution_status` tells you
-the outcome but nothing about what the customer was actually going through.
-
-Two things this agent looks for:
-
-  1. A STRUCTURAL OUTCOME. `resolution_status == "human_rejected"` means the bank
-     told the customer no. That is a fact, read from a field, no interpretation
-     needed -- and in scenario_03 it is the catalyst for everything that follows.
-
-  2. WHAT THE TEXT MEANS. "I've been in the hospital and my income dropped, can I
-     set up a payment plan" is a hardship disclosure. "Just confirming it's me, I
-     bought a video baby monitor" is reassurance -- and, quietly, a new-child
-     signal. Keywords get both of those right on the practice data and would be
-     fragile on hidden data, so the LLM leads and keywords catch.
-
-A NOTE ON WHO WROTE THE TEXT
-----------------------------
-`raw_text` in a resolved ticket is sometimes the BANK's reply, not the customer's
-(scenario_03's EVT_000412 is the bank refusing a fee waiver). Classifying that as
-"the customer sounds calm" would be exactly backwards. The prompt says who is
-speaking, and the structural check on resolution_status does not depend on the
-text at all.
-"""
+"""Support Agent -- support_logs only."""
 
 from __future__ import annotations
 

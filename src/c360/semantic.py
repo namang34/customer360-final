@@ -1,51 +1,4 @@
-"""
-Semantic memory -- ChromaDB holding narrative patterns and bank policy text.
-
-WHAT IS IN HERE, AND WHY IT IS NOT JUST A DICTIONARY
-----------------------------------------------------
-Two collections:
-
-  patterns   One short description per inferred_state enum. Used to explain and
-             sanity-check a synthesis conclusion in language rather than in
-             affinity scores.
-
-  policies   Bank eligibility and action-grounding text. The Action Proposer
-             retrieves from this rather than carrying a hard-coded mapping from
-             state to action.
-
-The obvious objection is that with six possible actions a Python dict would do
-the same job in four lines. The reason it is retrieval instead:
-
-  1. A dict is a decision baked into code. Policy is a thing a bank CHANGES --
-     eligibility thresholds move, products launch, a regulator restricts an
-     outreach channel. Retrieval means updating a document, not redeploying.
-  2. The action_subtype field is free text and must be justified. Retrieved
-     policy gives the Action Proposer something concrete to ground a subtype in
-     and to cite, instead of inventing a plausible-sounding label.
-  3. The problem statement marks down "the most obvious single-agent-with-a-
-     vector-database pattern". The answer to that is not to avoid retrieval; it
-     is to use it where it earns its place -- grounding a bounded decision in
-     policy -- rather than as the whole architecture.
-
-INCREMENTAL UPSERT, NOT FULL REBUILD
-------------------------------------
-Required by the mid-term. `upsert` is content-hashed: re-running the seed is a
-no-op, and editing one policy document re-embeds only that one.
-
-THE EMBEDDING PROBLEM, AND AN HONEST ANSWER
--------------------------------------------
-ChromaDB's default embedding function downloads an ONNX MiniLM model on first
-use. That is fine on a laptop with internet and a disaster in a sandboxed
-evaluation environment: the run dies on a network error having nothing to do with
-the system being evaluated.
-
-So the embedder is pluggable. The default is tried first; if it cannot be built,
-`HashingEmbedder` -- a dependency-free, deterministic bag-of-words embedding
-defined below -- is used instead. Over a corpus of ~20 short policy documents
-that is genuinely adequate, and it means the test suite and the graded run never
-depend on a download. `SemanticMemory.embedder_name` records which was used so
-the evaluation write-up can state it plainly.
-"""
+"""Semantic memory -- ChromaDB holding narrative patterns and bank policy text."""
 
 from __future__ import annotations
 
@@ -70,20 +23,7 @@ def tokenize(text: str) -> list[str]:
 
 
 class HashingEmbedder:
-    """
-    A deterministic bag-of-words embedding with no model and no download.
-
-    Words are hashed into a fixed number of buckets, counts are damped with
-    1 + log(count) so a word repeated ten times does not dominate one used once,
-    and the vector is L2-normalised so cosine similarity behaves.
-
-    This is the "hashing trick" -- standard, old, and well suited to a small
-    closed corpus of domain text where the vocabulary of a query ("hospital
-    bill", "payment plan") overlaps the documents directly. It has no semantic
-    generalisation: it cannot know that "infant" relates to "baby". That is an
-    acceptable trade for never failing on a network error, and the real
-    embedder is used whenever it is available.
-    """
+    """A deterministic bag-of-words embedding with no model and no download."""
 
     # Chroma's EmbeddingFunction protocol requires name() to be a CALLABLE, and
     # raises a confusing "'str' object is not callable" if it is an attribute.
@@ -106,9 +46,6 @@ class HashingEmbedder:
         return [self.embed(text) for text in input]
 
     # Newer Chroma versions call these two directly rather than __call__.
-    # Symmetric embedding (the same function for documents and queries) is the
-    # right choice here: an asymmetric model would need separate training, and
-    # for bag-of-words overlap there is nothing to gain.
     def embed_documents(self, input: Sequence[str]) -> list[list[float]]:  # noqa: A002
         return self(input)
 
@@ -142,13 +79,8 @@ class Document:
     metadata: dict[str, Any]
 
 
-# ---------------------------------------------------------------------------
-# The seed corpus
-# ---------------------------------------------------------------------------
-# Written as policy prose rather than as a lookup table, because that is what it
-# is standing in for. Each policy names the action enum it authorises and the
-# action_subtype it grounds, so the proposer cites a document rather than
-# inventing a label.
+# The seed corpus Written as policy prose rather than as a lookup table, because that is
+# what it is standing in for.
 
 POLICIES: list[Document] = [
     Document(
@@ -312,12 +244,9 @@ class Retrieved:
 
 
 class SemanticMemory:
-    """
-    Usage:
-        semantic = SemanticMemory()          # in-memory
-        semantic = SemanticMemory("chroma/") # persistent
-        semantic.seed()
-        hits = semantic.retrieve_policies("churn risk cancellation transfer out", k=3)
+    """Usage: semantic = SemanticMemory()          # in-memory semantic =
+    SemanticMemory("chroma/") # persistent semantic.seed() hits =
+    semantic.retrieve_policies("churn risk cancellation transfer out", k=3)
     """
 
     def __init__(self, path: str | Path | None = None, prefer_default_embedder: bool = True) -> None:
@@ -335,13 +264,7 @@ class SemanticMemory:
         self.patterns = self._collection("c360_patterns")
 
     def _build_embedder(self, prefer_default: bool):
-        """
-        Try the real embedding model; fall back to hashing if it cannot be built.
-
-        The fallback is not a silent downgrade -- `embedder_name` records which
-        one is in use and the run log prints it, so an evaluation report can state
-        honestly which embedding backed the retrieval.
-        """
+        """Try the real embedding model; fall back to hashing if it cannot be built."""
         if prefer_default:
             try:
                 from chromadb.utils import embedding_functions
@@ -354,22 +277,8 @@ class SemanticMemory:
         return HashingEmbedder(), HashingEmbedder.EMBEDDER_NAME
 
     def _collection(self, name: str):
-        """
-        Collections are namespaced by embedder, and that is a correctness rule
-        rather than tidiness.
-
-        Chroma fixes one vector dimension per collection, and the two embedders
-        here do not agree: the default model is 384-dimensional, the hashing
-        fallback 256. Switching between them -- which is exactly what switching
-        between a live run and an offline one does -- previously hit
-        "Collection expecting embedding with dimension of 256, got 384" against
-        the collection the earlier run had already created.
-
-        Even where the dimensions happened to match, the vectors would not be
-        comparable: a hashed vector and a learned embedding of the same sentence
-        have nothing to do with each other, so a query embedded one way against
-        documents embedded the other way returns ranked nonsense rather than an
-        error. Separate collections make that impossible by construction.
+        """Collections are namespaced by embedder, and that is a correctness rule rather
+        than tidiness.
         """
         suffix = re.sub(r"[^A-Za-z0-9_-]+", "-", self.embedder_name).strip("-")
         return self.client.get_or_create_collection(
@@ -379,15 +288,7 @@ class SemanticMemory:
     # -- writing -----------------------------------------------------------
 
     def upsert(self, collection, documents: Sequence[Document]) -> int:
-        """
-        Incremental upsert, content-hashed.
-
-        Required by the mid-term: semantic memory must stay live without a full
-        re-index. Re-seeding is a no-op; editing one document re-embeds only that
-        document. On a small corpus the saving is trivial, but the PROPERTY is the
-        point -- a store that silently rebuilds is a store that cannot be updated
-        during a run.
-        """
+        """Incremental upsert, content-hashed."""
         existing = collection.get(ids=[d.doc_id for d in documents], include=["metadatas"])
         current_hashes = {
             doc_id: (meta or {}).get("content_hash")

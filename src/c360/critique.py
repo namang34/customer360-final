@@ -1,31 +1,4 @@
-"""
-Critique Agent -- the adversarial second pass, and the HITL stub.
-
-CRITIQUE-REFINER, NOT DEBATE
-----------------------------
-The mid-term considered multi-agent debate and rejected it: with a single
-customer in scope and only six possible actions, debate adds latency and free-tier
-quota without adding accuracy. What it chose instead is one adversarial reviewer
-with ONE bounded retry.
-
-Bounded matters. An unbounded critique loop on a free tier is a way to spend your
-whole quota arguing with yourself on day 12 of a 73-day replay and then run the
-remaining 61 days with no model at all.
-
-WHAT THE CRITIC ACTUALLY ASKS
------------------------------
-Four specific questions, not "is this good?":
-
-  1. Is this the isolated-anomaly pattern? (the red-herring check, in code)
-  2. Does the retrieved policy actually authorise this action?
-  3. Is the action proportionate to the evidence?
-  4. Does the action contradict the inferred state -- an offer to someone in
-     distress, a retention call to someone who just had a baby?
-
-Questions 1, 2 and 4 are code checks. Only 3 is a judgement, and only 3 goes to a
-model. Keeping the checkable ones out of the prompt is the difference between a
-guardrail and a hopeful instruction.
-"""
+"""Critique Agent -- the adversarial second pass, and the HITL stub."""
 
 from __future__ import annotations
 
@@ -182,14 +155,7 @@ class CritiqueAgent:
 
 
 def _contradiction(action: Action, state: InferredState) -> str | None:
-    """
-    Actions that contradict the diagnosis, regardless of evidence strength.
-
-    The clearest one: selling to someone in distress. scenario_03's tax refund is
-    designed to tempt exactly this -- a balance spike inside a churn narrative --
-    and even if corroboration were somehow satisfied, this check refuses it on
-    grounds of what the action MEANS rather than how well supported it is.
-    """
+    """Actions that contradict the diagnosis, regardless of evidence strength."""
     if action in SELL_ACTIONS and state in NO_SELL_STATES:
         return (
             f"REJECTED: {action.value} contradicts an inferred state of {state.value}. "
@@ -231,19 +197,7 @@ class HitlDecision:
 
 
 class HitlStub:
-    """
-    Human-in-the-loop checkpoint.
-
-    DEFAULT BEHAVIOUR: any action other than no_action becomes `escalated` and
-    waits. That is not a placeholder for something better -- it matches the ground
-    truth, which marks every intervention across all three scenarios as
-    `escalated` rather than auto-approved. A system that auto-approved would be
-    wrong on the graded field as well as wrong in principle.
-
-    The interactive mode is a CLI prompt, which the problem statement explicitly
-    says is sufficient. `responses` lets a scripted run supply answers so the HITL
-    path is exercised by the test suite rather than only by a human typing.
-    """
+    """Human-in-the-loop checkpoint."""
 
     def __init__(self, interactive: bool = False, responses: list[str] | None = None) -> None:
         self.interactive = interactive

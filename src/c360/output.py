@@ -1,25 +1,4 @@
-"""
-The inferred-events output writer.
-
-WHY THIS IS BUILT SECOND, NOT LAST
-----------------------------------
-This file is what gets graded. Everything else in the system -- four perception
-agents, synthesis, RAG, critique, HITL -- exists only to decide what goes in
-these rows. A system that reasons brilliantly and writes a malformed file scores
-zero, and the failure is silent: the JSON still looks fine to a human skimming
-it, the enum is just spelled slightly wrong.
-
-So the writer is built now, tested against dummy decisions, and locked down
-before any agent exists. By the time real decisions arrive, the shape of the
-output is already proven.
-
-THE DESIGN STANCE: refuse to write a bad file
----------------------------------------------
-Validation happens at CONSTRUCTION of each Checkpoint, not at write time. A bad
-value raises immediately, at the line of agent code that produced it, with that
-agent's name in the traceback -- rather than three hundred checkpoints later when
-the file is being serialised and all context is gone.
-"""
+"""The inferred-events output writer."""
 
 from __future__ import annotations
 
@@ -37,10 +16,8 @@ from .schema import Action, ConfidenceBand, HitlStatus, InferredState
 # cite at least one for any row that proposes an action -- see CheckpointError.
 EVENT_ID_PATTERN = re.compile(r"\bEVT_\d{4,}\b")
 
-# Actions that the mid-term architecture requires to pass the corroboration
-# guardrail before they may fire. Repeated here so the writer can refuse to
-# serialise one that was never checked -- defence in depth behind step 7's
-# actual guardrail.
+# Actions that the mid-term architecture requires to pass the corroboration guardrail
+# before they may fire.
 GUARDED_ACTIONS = frozenset({
     Action.COMPLIANCE_FRAUD_HOLD,
     Action.RELATIONSHIP_MANAGER_ESCALATION,
@@ -53,14 +30,7 @@ class CheckpointError(ValueError):
 
 
 def _iso_z(moment: datetime) -> str:
-    """
-    Format as ...Z, matching the dataset's own style exactly.
-
-    Python renders UTC as "+00:00"; every timestamp in the provided data and in
-    the README's example output uses "Z". A scorer doing string comparison on
-    as_of_time would miss every row if we emitted the other spelling. That is
-    precisely the kind of silent zero this file exists to prevent.
-    """
+    """Format as ...Z, matching the dataset's own style exactly."""
     if moment.tzinfo is None:
         raise CheckpointError(f"as_of_time must be timezone-aware: {moment!r}")
     return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -68,12 +38,7 @@ def _iso_z(moment: datetime) -> str:
 
 @dataclass(frozen=True)
 class Checkpoint:
-    """
-    One row of the graded output.
-
-    Field names and value spellings come straight from README_dataset_schema.md
-    and must not be altered.
-    """
+    """One row of the graded output."""
 
     as_of_time: datetime
     inferred_state: InferredState
@@ -163,14 +128,7 @@ def _coerce(enum_cls, value, field_name: str):
 
 
 class InferredEventsWriter:
-    """
-    Collects checkpoints during a run and writes the graded JSON array.
-
-    Usage:
-        writer = InferredEventsWriter(redactor=Redactor.from_entities(entities))
-        writer.add(Checkpoint(...))          # once per daily clock tick
-        writer.write("out/scenario_03.json")
-    """
+    """Collects checkpoints during a run and writes the graded JSON array."""
 
     def __init__(self, redactor: Redactor | None = None, scenario_id: str | None = None) -> None:
         self.redactor = redactor
@@ -185,13 +143,7 @@ class InferredEventsWriter:
         return list(self._checkpoints)
 
     def add(self, checkpoint: Checkpoint) -> Checkpoint:
-        """
-        Append one checkpoint, enforcing ordering and PII rules.
-
-        Time must not go backwards and a timestamp must not repeat. Both would
-        make the file ambiguous to a scorer matching rows by as_of_time -- with
-        two rows at the same instant, which one is the answer?
-        """
+        """Append one checkpoint, enforcing ordering and PII rules."""
         if self._checkpoints:
             previous = self._checkpoints[-1]
             if checkpoint.as_of_time < previous.as_of_time:
@@ -224,14 +176,7 @@ class InferredEventsWriter:
         return [c.to_row() for c in self._checkpoints]
 
     def write(self, path: str | Path) -> Path:
-        """
-        Serialise to disk and immediately read it back to prove it round-trips.
-
-        The read-back is not paranoia for its own sake: it is the last chance to
-        catch a non-serialisable value (a stray datetime, a numpy float from some
-        future scoring code) before a run that took 37 minutes produces a file
-        the grader cannot parse.
-        """
+        """Serialise to disk and immediately read it back to prove it round-trips."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         rows = self.to_rows()
@@ -245,13 +190,7 @@ class InferredEventsWriter:
     # -- self-checks the run script calls before declaring success ----------
 
     def covers(self, required: Iterable[datetime]) -> list[datetime]:
-        """
-        Return any required as_of_times that have NO row in this file.
-
-        Used against each scenario's ground_truth.json checkpoints. A missing
-        timestamp scores zero for that checkpoint no matter how good the
-        reasoning was, and it is invisible unless something checks.
-        """
+        """Return any required as_of_times that have NO row in this file."""
         present = {_iso_z(c.as_of_time) for c in self._checkpoints}
         return [when for when in required if _iso_z(when) not in present]
 

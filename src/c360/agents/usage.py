@@ -1,23 +1,4 @@
-"""
-Usage Agent -- web_app_events only.
-
-The narrowest agent and, in scenario_03, the one that sees the story first. Two
-kinds of thing live here:
-
-  - A CLICK that means something on its own. Opening
-    "manage_standing_instructions_cancel" is not ambiguous: nobody visits that
-    page by accident. Event-based, fires immediately.
-
-  - A HABIT CHANGING. Logins thinning out, sessions collapsing from ~5 minutes to
-    18 seconds. No single login event says "this customer is disengaging"; the
-    signal only exists in the rate. Time-based, fires on the daily tick.
-
-This is also the one agent whose free text is worth an LLM. A search query like
-"child education savings plan" or "medical hardship plan" is language, and
-guessing its intent from keywords works for the three practice scenarios but
-would be brittle on hidden data. So: LLM when available, keyword rules when not,
-and the fallback is tested rather than assumed.
-"""
+"""Usage Agent -- web_app_events only."""
 
 from __future__ import annotations
 
@@ -155,16 +136,7 @@ class UsageAgent(PerceptionAgent):
 
     @staticmethod
     def _keyword_intent(text: str):
-        """
-        Longest matched phrase wins, not first-dict-entry wins.
-
-        "medical hardship plan" matches both "hardship" (financial_hardship) and
-        "medical hardship" (medical). Iterating in dict order picked whichever was
-        declared first, which sent scenario_01's hardship search to
-        financial_distress_general and cost the medical_hardship inference at the
-        26 March checkpoint. Preferring the longer phrase is a real specificity
-        rule rather than an accident of ordering.
-        """
+        """Longest matched phrase wins, not first-dict-entry wins."""
         lowered = text.lower()
         best_intent, best_len, best_kw = "none", 0, ""
         for intent, keywords in INTENT_KEYWORDS.items():
@@ -186,14 +158,7 @@ class UsageAgent(PerceptionAgent):
         return findings
 
     def _engagement_drop(self, as_of, ctx) -> list[Finding]:
-        """
-        Logins thinning out against this customer's own normal.
-
-        Per-customer baselines matter here more than anywhere else. scenario_03's
-        David Chen logs in roughly daily; scenario_01's Marcus Vance far less. A
-        fixed threshold like "fewer than 3 logins a week" would fire constantly
-        for one and never for the other.
-        """
+        """Logins thinning out against this customer's own normal."""
         recent = ctx.memory.daily_rate(
             as_of, source_systems=[WEB], event_types=["login"], window_days=14
         )
@@ -227,13 +192,7 @@ class UsageAgent(PerceptionAgent):
         ]
 
     def _session_collapse(self, as_of, ctx) -> list[Finding]:
-        """
-        Sessions getting drastically shorter -- logging in, glancing, leaving.
-
-        A distinct signal from logins drying up, and it often comes FIRST: the
-        customer is still checking, but has stopped doing anything. scenario_03
-        goes from ~230s sessions to 18s and then 10s while still logging in.
-        """
+        """Sessions getting drastically shorter -- logging in, glancing, leaving."""
         sessions = [
             e
             for e in ctx.memory.events_as_of(

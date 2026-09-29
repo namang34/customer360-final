@@ -1,40 +1,4 @@
-"""
-Episodic memory -- the per-customer SQLite store.
-
-WHAT THIS IS FOR
-----------------
-The replay engine hands out events one at a time and then forgets them. Episodic
-memory is where they go, along with every finding the perception swarm publishes
-and every decision the system commits to. It is the thing that makes this an
-"ambient" system rather than a stateless classifier: an inference made on 8 March
-is still on the record, correctly timestamped, on 10 April.
-
-WHY SQLITE AND NOT REDIS
-------------------------
-The brief allows either. At ~500 events per customer the entire dataset fits in a
-few hundred kilobytes, so throughput is irrelevant and the thing that actually
-matters is being able to express one query correctly:
-
-    WHERE event_time <= :as_of AND release_time <= :as_of
-
-SQL expresses that precisely, the index makes it exact rather than approximate,
-and the database file is a durable artifact you can open with any SQLite browser
-during a viva and show the examiner. Redis would be a key-value store we would
-then have to filter in Python, which is strictly more code for strictly less
-guarantee.
-
-THE ONE RULE THIS FILE EXISTS TO ENFORCE
-----------------------------------------
-`as_of` is the FIRST POSITIONAL ARGUMENT of every read method, with no default.
-Not a keyword argument, not optional, not inferred from a clock the class holds
-privately. A caller physically cannot ask this store a question without stating
-what "now" is.
-
-That is a deliberate API choice. The alternative -- letting memory hold a
-reference to the clock and read it internally -- looks tidier and is far more
-dangerous: the leak would then be invisible at every call site, and the hard rule
-of the whole project would depend on one object's internal state being correct.
-"""
+"""Episodic memory -- the per-customer SQLite store."""
 
 from __future__ import annotations
 
@@ -103,15 +67,7 @@ class TemporalLeakError(RuntimeError):
 
 
 def _iso(moment: datetime) -> str:
-    """
-    Serialise a datetime for storage.
-
-    Always normalised to UTC first. SQLite compares TEXT lexicographically, and
-    ISO-8601 UTC strings sort correctly that way -- but only if every row uses the
-    same offset. One row stored as "+05:30" would sort into the wrong place and
-    silently corrupt every temporal filter in the system. Normalising here makes
-    that impossible.
-    """
+    """Serialise a datetime for storage."""
     if moment.tzinfo is None:
         raise ValueError("refusing to store a naive datetime")
     return moment.astimezone(timezone.utc).isoformat()
@@ -130,15 +86,7 @@ def _require_as_of(as_of: Any) -> datetime:
 
 
 class EpisodicMemory:
-    """
-    Per-customer event, finding and decision history.
-
-    Usage:
-        memory = EpisodicMemory(customer_id="CUST_00184")     # in-memory
-        memory = EpisodicMemory("run.sqlite", "CUST_00184")   # on disk
-        memory.record_events(engine.history)
-        recent = memory.events_as_of(now, since_days=30)
-    """
+    """Per-customer event, finding and decision history."""
 
     def __init__(self, path: str | Path = ":memory:", customer_id: str | None = None) -> None:
         self.path = str(path)
@@ -165,14 +113,7 @@ class EpisodicMemory:
         self.record_events([event])
 
     def record_events(self, events: Iterable[Event]) -> int:
-        """
-        Store events. Re-recording the same event_id is a harmless no-op.
-
-        INSERT OR IGNORE rather than REPLACE: if the same event arrives twice, the
-        first copy is authoritative. Replacing would let a duplicate with a
-        different timestamp silently rewrite history, which is exactly the kind of
-        thing that would break a temporal filter without any error appearing.
-        """
+        """Store events. Re-recording the same event_id is a harmless no-op."""
         rows = [
             (
                 e.event_id,
@@ -250,28 +191,7 @@ class EpisodicMemory:
         event_types: Sequence[str] | None = None,
         limit: int | None = None,
     ) -> list[Event]:
-        """
-        Every event visible at `as_of`, oldest first.
-
-        THE TWO FILTERS, AND WHY BOTH:
-
-          event_time   <= as_of   Temporal leakage. Stops an agent reasoning about
-                                  something that has not happened yet. This is the
-                                  project's stated hard rule.
-
-          release_time <= as_of   Availability leakage. Stops an agent reasoning
-                                  about something that HAS happened but has not
-                                  reached the bank yet. Without it, the $450
-                                  diagnostics charge in scenario_01 (occurred
-                                  1 March, received 3 March) would appear to have
-                                  been known two days before it arrived -- and
-                                  every lead-time figure computed from it would be
-                                  wrong.
-
-        This is deliberately the same predicate as ReplayEngine.visible_events().
-        A test asserts the two agree on every checkpoint of every scenario; they
-        are independent implementations, so agreement is evidence, not tautology.
-        """
+        """Every event visible at `as_of`, oldest first."""
         as_of = _require_as_of(as_of)
         clauses = ["event_time <= :as_of", "release_time <= :as_of"]
         params: dict[str, Any] = {"as_of": _iso(as_of)}
@@ -325,13 +245,7 @@ class EpisodicMemory:
         agents: Sequence[str] | None = None,
         signals: Sequence[str] | None = None,
     ) -> list[Finding]:
-        """
-        Findings published at or before `as_of`.
-
-        Only one filter here, on `as_of`. A finding has no separate "arrival"
-        time: it is produced by our own agents from data that was already visible,
-        so the moment it was created is the moment it became knowable.
-        """
+        """Findings published at or before `as_of`."""
         as_of = _require_as_of(as_of)
         clauses = ["as_of <= :as_of"]
         params: dict[str, Any] = {"as_of": _iso(as_of)}
@@ -369,16 +283,7 @@ class EpisodicMemory:
         return [dict(r) for r in rows]
 
     def latest_decision_as_of(self, as_of: datetime) -> dict[str, Any] | None:
-        """
-        The most recent committed decision at or before `as_of`.
-
-        This is what makes an inference PERSIST rather than be recomputed from
-        scratch. The problem statement is explicit about it: a life-event inferred
-        on day one must still be available and correctly weighted weeks later,
-        rather than each agent re-deriving it. Carrying the previous state forward
-        on quiet days is also what keeps ~70 of 74 daily checkpoints free of an
-        LLM call.
-        """
+        """The most recent committed decision at or before `as_of`."""
         decisions = self.decisions_as_of(as_of)
         return decisions[-1] if decisions else None
 
@@ -403,14 +308,7 @@ class EpisodicMemory:
         event_types: Sequence[str] | None = None,
         window_days: float = 14,
     ) -> float:
-        """
-        Events per day over the trailing window.
-
-        The backbone of every "this dropped off" detection. Comparing a recent
-        rate against a baseline rate from the history seed is how usage collapse
-        and card-spend collapse get spotted -- neither of which produces an event
-        of its own to react to.
-        """
+        """Events per day over the trailing window."""
         events = self.events_as_of(
             as_of,
             since_days=window_days,
@@ -428,15 +326,7 @@ class EpisodicMemory:
         baseline_days: float = 90,
         exclude_recent_days: float = 14,
     ) -> float:
-        """
-        The customer's OWN normal rate, measured before the recent window.
-
-        Per-customer baselines rather than a global threshold: David Chen logs in
-        far more than Marcus Vance does, so "two logins this fortnight" means
-        something very different for each. Excluding the recent window stops the
-        very collapse we are trying to detect from dragging the baseline down with
-        it.
-        """
+        """The customer's OWN normal rate, measured before the recent window."""
         as_of = _require_as_of(as_of)
         cutoff = as_of - timedelta(days=exclude_recent_days)
         window = baseline_days - exclude_recent_days

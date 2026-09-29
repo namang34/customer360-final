@@ -1,38 +1,4 @@
-"""
-The guardrail -- a hard, code-level check on every proposed action.
-
-THIS IS NOT A PROMPT
---------------------
-The problem statement requires guardrails to be "actual code checks, not prompt
-instructions asking the LLM to please be careful". Everything in this file is
-arithmetic and set membership. No model is consulted, nothing here can be talked
-out of its answer by a persuasive-sounding rationale, and the result is identical
-on every run.
-
-THE CORE RULE
--------------
-No compliance_fraud_hold, relationship_manager_escalation or personalized_offer
-may fire unless at least TWO INDEPENDENT SOURCE SYSTEMS corroborate the finding
-inside the same window.
-
-Why that one rule is enough: every red herring planted across the three scenarios
-is a single event on a single source system with nothing else supporting it.
-
-    scenario_01  EVT_000382  $12,000 tuition transfer      ach_wire only
-    scenario_01  EVT_000402  $2,500 resort refund          card_payments only
-    scenario_02  EVT_000328  $600 electronics purchase     card_payments only
-    scenario_03  EVT_000447  $5,200 tax refund             core_banking_ledger only
-
-Meanwhile every genuine narrative spans several systems. The rule separates them
-structurally rather than by tuning a threshold against examples, which is why it
-is expected to hold on the hidden evaluation set too.
-
-A SECOND, INDEPENDENT DEFENCE
------------------------------
-The guardrail also refuses an action whose supporting evidence is dominated by a
-single event. Corroboration counts systems; this catches the case where two
-systems technically appear but one event is doing all the work.
-"""
+"""The guardrail -- a hard, code-level check on every proposed action."""
 
 from __future__ import annotations
 
@@ -45,13 +11,6 @@ from .state_board import Corroboration
 from .synthesis import Synthesis
 
 # Actions serious enough to require corroboration before they may fire.
-#
-# support_intervention and proactive_retention_outreach are deliberately NOT in
-# this set. Both are helpful, low-cost contacts -- offering a payment plan to
-# someone who may be struggling is not harmful if the inference is wrong, whereas
-# freezing their funds, dispatching a relationship manager or pitching a product
-# all are. The guardrail should be proportionate to the cost of being wrong, not
-# uniform.
 GUARDED_ACTIONS = frozenset({
     Action.COMPLIANCE_FRAUD_HOLD,
     Action.RELATIONSHIP_MANAGER_ESCALATION,
@@ -79,13 +38,7 @@ class GuardrailVerdict:
 
 
 def check(proposal: ActionProposal, synthesis: Synthesis) -> GuardrailVerdict:
-    """
-    Run the guardrail. Deterministic, cheap, and called on EVERY proposal.
-
-    An unguarded action still gets a verdict -- with `checks` recorded -- so the
-    trace shows the guardrail ran and why it did not block, rather than leaving a
-    silent gap that looks like it was skipped.
-    """
+    """Run the guardrail. Deterministic, cheap, and called on EVERY proposal."""
     corroboration: Corroboration = synthesis.corroboration
     sources = corroboration.source_systems
     events = corroboration.event_ids

@@ -1,23 +1,5 @@
-"""
-Scoring harness -- compares an inferred-events file against a scenario's
+"""Scoring harness -- compares an inferred-events file against a scenario's
 ground_truth.json.
-
-The problem statement offers credit for building this (section 8.1). It is also
-the only way to answer "did that change help?" with a number rather than an
-impression, which matters more than the credit does.
-
-WHAT IT MEASURES, MIRRORING THE STATED EVALUATION CRITERIA
-----------------------------------------------------------
-  1. ACCURACY OF INFERENCE   inferred_state at each graded checkpoint
-  2. TIMELINESS              confidence_band at each checkpoint, plus lead time
-                             against `ideal_action_lead_time_days`
-  3. APPROPRIATE ACTION      action, action_subtype and hitl_status
-  4. FALSE POSITIVES         each `false_positive_check` -- did a red herring
-                             trigger an action it must not, inside its window
-
-Scored HONESTLY. Nothing here rounds in our favour, partial credit is labelled as
-partial, and a missing checkpoint scores zero rather than being skipped -- because
-skipping it is exactly the bug the harness exists to catch.
 """
 
 from __future__ import annotations
@@ -218,14 +200,7 @@ def score_scenario(
 
 
 def _lead_time(rows, checkpoint_key: str, action: str, ideal_days: int) -> LeadTimeScore:
-    """
-    How many days BEFORE the graded checkpoint did the required action first fire?
-
-    The ground truth frames these checkpoints as deadlines, not targets:
-    scenario_03's note says that waiting until 10 April means the system "has
-    failed the early lead time test". So firing ON the checkpoint day scores zero
-    lead time, and only firing earlier counts.
-    """
+    """How many days BEFORE the graded checkpoint did the required action first fire?"""
     deadline = _ts(checkpoint_key)
     first = next(
         (row["as_of_time"] for row in rows if row["action"] == action and _ts(row["as_of_time"]) <= deadline),
@@ -238,13 +213,7 @@ def _lead_time(rows, checkpoint_key: str, action: str, ideal_days: int) -> LeadT
 
 
 def _false_positive(rows, scenario_dir: Path, check: dict[str, Any]) -> FalsePositiveScore:
-    """
-    Did a forbidden action fire inside the red herring's window?
-
-    The window is anchored on the herring's OWN event_time, read back out of the
-    scenario files -- ground_truth gives the event_id and the window length but
-    not the timestamp, and hard-coding it would silently rot if the data changed.
-    """
+    """Did a forbidden action fire inside the red herring's window?"""
     event_id = check["event_id"]
     forbidden = list(check.get("must_not_trigger_action", []))
     window_hours = int(check.get("window_hours", 72))

@@ -1,23 +1,4 @@
-"""
-Life-Signal Agent -- loan_kyc and social_signal_consented.
-
-The quietest agent by volume and the loudest by weight. Across all three
-scenarios loan_kyc fires exactly once: scenario_02's `dependents_change` from 1
-to 2 on 25 March. That single record is the difference between inferring
-"something child-related is going on" and knowing it -- and the graded checkpoint
-two days later expects high confidence.
-
-So this agent is deliberately biased towards STRONG. A KYC record is not a
-behavioural inference like a spending pattern; it is the customer filing a change
-of circumstance with their bank. It is close to ground truth.
-
-CONSENT
--------
-`social_signal_consented` carries a `consent_flag`. This agent refuses to read a
-record where consent is absent or false, regardless of what it contains. That is
-a one-line check, but it is the kind of thing an examiner asks about when the
-source is literally named "consented".
-"""
+"""Life-Signal Agent -- loan_kyc and social_signal_consented."""
 
 from __future__ import annotations
 

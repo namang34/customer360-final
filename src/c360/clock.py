@@ -1,20 +1,4 @@
-"""
-The simulated clock.
-
-WHY THIS FILE EXISTS
---------------------
-There are two different clocks in this system and confusing them is the classic
-way a replay harness ends up cheating:
-
-  * SIMULATED time -- the customer's timeline, Feb 1 to Apr 15 2026. Every
-    decision, every memory query, every checkpoint is stamped in this time.
-  * WALL-CLOCK time -- how long the demo takes to watch. Purely cosmetic.
-
-SimClock owns simulated time and treats wall-clock pacing as an optional side
-effect. That separation is what lets the test suite run the whole scenario in
-milliseconds and still assert that the result is byte-identical to a paced run.
-If correctness depended on real sleeping, the tests could not prove anything.
-"""
+"""The simulated clock."""
 
 from __future__ import annotations
 
@@ -26,31 +10,11 @@ SECONDS_PER_DAY = 86_400.0
 
 
 class ClockRegressionError(RuntimeError):
-    """
-    Raised when something tries to move simulated time backwards.
-
-    This is the load-bearing guard of the replay engine. Simulated 'now' moving
-    backwards would mean an agent could observe a state, then be handed an
-    earlier state -- which is exactly the future-leakage failure mode in reverse,
-    and would corrupt every checkpoint after it. We refuse loudly rather than
-    tolerate it.
-    """
+    """Raised when something tries to move simulated time backwards."""
 
 
 class SimClock:
-    """
-    A monotonic clock over simulated time, with optional wall-clock pacing.
-
-    Args:
-        start: simulated time at which the clock begins.
-        seconds_per_sim_day: wall-clock seconds to spend per simulated day.
-            Taken from replay_config.json (30 for these scenarios). Set to 0 to
-            run as fast as the CPU allows -- the simulated timeline is unchanged.
-        sleep_fn: injected so tests can substitute a recorder instead of really
-            sleeping. Dependency injection here is not over-engineering; it is
-            the only way to assert that pacing was REQUESTED correctly without
-            making the test suite take 37 minutes.
-    """
+    """A monotonic clock over simulated time, with optional wall-clock pacing."""
 
     def __init__(
         self,
@@ -81,14 +45,7 @@ class SimClock:
         return self._now - self._start
 
     def advance_to(self, target: datetime) -> None:
-        """
-        Move simulated time forward to `target`, pacing in wall-clock if asked.
-
-        Advancing to the CURRENT time is allowed and is a no-op: several events
-        in this dataset share a timestamp to the second (EVT_000453/454 for
-        example), and each of them legitimately advances the clock to the same
-        instant. Going backwards is not allowed and raises.
-        """
+        """Move simulated time forward to `target`, pacing in wall-clock if asked."""
         if target.tzinfo is None:
             raise ValueError("advance_to requires a timezone-aware datetime")
         if target < self._now:
@@ -111,27 +68,7 @@ class SimClock:
 
 
 def daily_boundaries(start: datetime, end: datetime, step: timedelta = timedelta(days=1)):
-    """
-    Yield every simulated midnight in [start, end], inclusive of both ends.
-
-    WHY THIS MATTERS -- two independent reasons, either one sufficient:
-
-    1. GRADED CHECKPOINTS EXIST IN EMPTY TIME. In scenario_03 the last live event
-       is EVT_000471 on Apr 3, but replay_config.simulated_end is Apr 15 and the
-       ground truth expects a checkpoint at 2026-04-10T00:00:00Z. A clock driven
-       only by events never reaches Apr 10, so that checkpoint would simply never
-       be emitted -- a scored row lost to an off-by-one in the loop structure,
-       with nothing in the logs to suggest anything went wrong.
-
-    2. ABSENCE IS A SIGNAL. "Card usage drops to zero" and "digital engagement
-       falls away" are detectable only by noticing that nothing arrived. An
-       event-driven-only system is structurally incapable of observing silence,
-       because silence produces no event to react to. The daily tick is what
-       gives the perception layer something to wake up on.
-
-    `step` is a parameter rather than a hard-coded day so the cadence can be
-    tightened later without touching the merge logic.
-    """
+    """Yield every simulated midnight in [start, end], inclusive of both ends."""
     if start > end:
         return
     current = start

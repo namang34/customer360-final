@@ -1,29 +1,5 @@
-"""
-The state board -- the shared per-customer surface the perception swarm writes to
-and the Synthesis Agent reads from.
-
-WHY THIS EXISTS AS ITS OWN THING
---------------------------------
-The mid-term architecture has four perception agents running as a SWARM: parallel,
-independent, no interdependency. Swarms need somewhere to put their output that is
-not each other. The state board is that place.
-
-It gives three things nothing else in the system provides:
-
-1. A TIME-SCOPED VIEW OF FINDINGS. Every read goes through episodic memory with a
-   mandatory `as_of`, so the board cannot show synthesis a finding from the future
-   any more than memory can show an agent a future event.
-
-2. THE CORROBORATION COUNT. The guardrail's question -- "is this backed by >= 2
-   independent source_systems in the same window, or is it one isolated anomaly?"
-   -- is answered here, by arithmetic over finding metadata. Not by an LLM, and
-   not by a prompt politely asking a model to be careful.
-
-3. PERSISTED STATE. The problem statement is explicit that an inferred life phase
-   "is not a one-off classification to be computed and forgotten" -- it must still
-   be available and correctly weighted weeks later. `current_state()` reads the
-   last committed decision rather than re-deriving it, which is both the required
-   behaviour and the reason ~70 of 74 daily checkpoints cost no LLM call at all.
+"""The state board -- the shared per-customer surface the perception swarm writes to and
+the Synthesis Agent reads from.
 """
 
 from __future__ import annotations
@@ -36,15 +12,8 @@ from .findings import Finding, SignalStrength
 from .memory import EpisodicMemory
 from .schema import Action, ConfidenceBand, HitlStatus, InferredState
 
-# How far back two findings can sit and still count as "the same window".
-#
-# 14 days is chosen from the data, not plucked out of the air. Scenario_03's
-# decisive pair are the standing-instruction cancellation (EVT_000457, 4 March)
-# and the savings transfer out (EVT_000461, 6 March) -- two days apart. Scenario_01
-# spreads its ER visit, income replacement and hospital bill across roughly five
-# weeks, but any adjacent pair falls well inside a fortnight. A shorter window
-# would miss slow-burn narratives; a much longer one would start correlating
-# genuinely unrelated events and manufacture false positives.
+# How far back two findings can sit and still count as "the same window". 14 days is
+# chosen from the data, not plucked out of the air.
 DEFAULT_WINDOW_DAYS = 30
 
 # Perception agents, named once so a typo in an agent name cannot silently create
@@ -54,13 +23,7 @@ PERCEPTION_AGENTS = ("transaction", "usage", "support", "life_signal")
 
 @dataclass(frozen=True)
 class Corroboration:
-    """
-    The evidence picture in one window. This is the guardrail's input.
-
-    Kept as data rather than a bool so the notes field, the trace and the Critique
-    Agent can all explain WHY something was or was not corroborated, rather than
-    just reporting a verdict.
-    """
+    """The evidence picture in one window. This is the guardrail's input."""
 
     as_of: datetime
     window_days: float
@@ -79,31 +42,7 @@ class Corroboration:
 
     @property
     def is_corroborated(self) -> bool:
-        """
-        THE GUARDRAIL PREDICATE.
-
-        >= 2 independent source_systems inside the window.
-
-        This single rule defeats every red herring in all three scenarios, and the
-        reason is structural: each planted red herring is one isolated event with
-        nothing from any other system backing it up.
-
-          scenario_01 EVT_000382 (tuition transfer) and EVT_000402 (resort refund)
-          scenario_02 EVT_000328 (baby monitor / electronics)
-          scenario_03 EVT_000447 (tax refund deposit)
-
-        Every one of them is a single event from a single source system. Meanwhile
-        every genuine narrative shows up across several: scenario_03's churn story
-        touches support_logs, web_app_events, core_banking_ledger and
-        instant_payments.
-
-        Note this counts SOURCE SYSTEMS, not events and not agents. Three card
-        purchases are three events but one system, and would prove nothing -- a
-        spending spree at one merchant is still one stream of evidence. Counting
-        agents instead would be subtly wrong too, because the Transaction Agent
-        alone covers four different source systems and can legitimately corroborate
-        itself across them.
-        """
+        """THE GUARDRAIL PREDICATE."""
         return self.independent_source_count >= 2
 
     @property
@@ -149,13 +88,10 @@ class BoardState:
 
 
 class StateBoard:
-    """
-    Usage:
-        board = StateBoard(memory)
-        board.publish(finding)                      # perception agents write
-        board.findings(now)                         # synthesis reads
-        board.corroboration(now)                    # the guardrail reads
-        board.current_state(now)                    # persisted belief
+    """Usage: board = StateBoard(memory) board.publish(finding)                      #
+    perception agents write board.findings(now)                         # synthesis
+    reads board.corroboration(now)                    # the guardrail reads
+    board.current_state(now)                    # persisted belief
     """
 
     def __init__(self, memory: EpisodicMemory, window_days: float = DEFAULT_WINDOW_DAYS) -> None:
@@ -225,36 +161,12 @@ class StateBoard:
         )
 
     def should_synthesise(self, as_of: datetime, *, window_days: float | None = None) -> bool:
-        """
-        THE AGENT-DEPENDENT TRIGGER.
-
-        Synthesis fires when >= 2 DISTINCT perception agents have flagged something
-        in the same window. Straight from the mid-term architecture.
-
-        Note this is deliberately NOT the same test as the guardrail. This one
-        counts AGENTS and decides whether it is worth spending an LLM call; the
-        guardrail counts SOURCE SYSTEMS and decides whether an action may fire.
-        Two different questions:
-
-          - The Transaction Agent alone can see a salary stop AND a savings
-            drawdown -- two source systems, so the guardrail would be satisfied,
-            but only one agent has an opinion and there is nothing to correlate.
-          - Conversely two agents might both be reading the same single system,
-            which is enough to be worth thinking about but not enough to act on.
-
-        Keeping them separate is what stops the trigger and the safety check
-        collapsing into one number that does neither job properly.
-        """
+        """THE AGENT-DEPENDENT TRIGGER."""
         found = self.findings(as_of, window_days=window_days)
         return len({f.agent for f in found}) >= 2
 
     def current_state(self, as_of: datetime) -> BoardState:
-        """
-        What the system believes right now, carried forward from the last decision.
-
-        On a quiet day this is the whole answer: nothing new arrived, so the
-        previous belief stands and no agent needs to run.
-        """
+        """What the system believes right now, carried forward from the last decision."""
         last = self.memory.latest_decision_as_of(as_of)
         if last is None:
             return BoardState(
