@@ -145,6 +145,22 @@ class ReplayEngine:
             )
 
         # 2. Live events should fall inside the configured window.
+        # Released before the window even opened means the bank already knew when the
+        # replay starts, so it is backstory. Fold it into history -- the mirror of the
+        # case above. Without this the clock is asked to run backwards and the run dies.
+        pre_window = [e for e in self.live if e.release_time < cfg.simulated_start]
+        if pre_window:
+            self.warnings.append(
+                f"{len(pre_window)} live event(s) released before simulated_start "
+                f"(first: {pre_window[0].event_id}). Already known when the window "
+                "opened, so they are folded into history as backstory rather than replayed."
+            )
+            drop = {e.event_id for e in pre_window}
+            self.live = [e for e in self.live if e.event_id not in drop]
+            self.history = sorted(
+                self.history + pre_window, key=lambda e: (e.event_time, e.event_id)
+            )
+
         early = [e for e in self.live if e.event_time < cfg.simulated_start]
         if early:
             self.warnings.append(

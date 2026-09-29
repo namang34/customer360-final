@@ -143,6 +143,25 @@ event-driven and the time-driven, and one observed signal. The trigger is
 available on every trace row for anyone who wants to see when the swarm actually
 converged; it just is not a branch.
 
+### 7. Five of the fourteen `inferred_state` values can never be produced
+
+The signal-to-state affinity tables route to nine states. `potential_fraud_or_takeover`,
+`elder_vulnerability_or_scam_risk`, `small_business_cashflow_event`,
+`job_change_or_promotion` and `retirement_transition` appear in the schema and in
+the output enum, but no signal any agent emits maps to them, so the synthesis layer
+cannot reach them. One consequence is visible downstream: `action._eligible` filters
+retrieved policy on `meta["state"]`, so the `compliance_fraud_hold` policy document
+is unreachable and that action can never fire.
+
+This is a coverage limit, not a bug -- the three practice scenarios are medical
+hardship, a new child and churn, and the detectors were built for what the data
+contains. But it is the clearest known risk on held-out data: a fraud, elder-scam
+or small-business scenario would score zero on `inferred_state` and on `action`,
+and no amount of correct temporal reasoning would rescue it. Closing it means
+inventing affinity weights with no data to calibrate against, which is how the
+existing thresholds would have gone wrong too; the honest move is to name the gap
+rather than guess at it.
+
 ---
 
 ## What the system does well, and why

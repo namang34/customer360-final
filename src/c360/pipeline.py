@@ -272,7 +272,9 @@ class Pipeline:
         notes = " ".join(p for p in parts if p)
 
         # An action needs citations to be constructible at all.
-        if action is not Action.NO_ACTION and "EVT_" not in notes:
+        if action is not Action.NO_ACTION and not any(
+            e and e in notes for e in synthesis.event_ids
+        ):
             cited = ", ".join(synthesis.event_ids[:5])
             notes = f"{notes} Evidence: {cited}."
 

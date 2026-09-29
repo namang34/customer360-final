@@ -72,11 +72,23 @@ class Redactor:
         return scrubbed
 
     def counterparty_is_customer(self, payload: dict[str, Any]) -> bool:
-        """Did the customer send money to THEMSELVES at another institution?"""
+        """Did the customer send money to THEMSELVES at another institution?
+
+        EVERY part of the name must appear. Redaction deliberately over-matches on a
+        single token, which is right for masking and wrong here: "St James Hospital"
+        would read as a self-transfer for a customer named Sarah James, and
+        self_transfer_external is a decisive signal. Reusing scrub() for this was the
+        bug. The real self-transfers in the data carry the full name
+        ("David Chen - Chase Bank"), so precision costs nothing.
+        """
         raw = payload.get("counterparty_name")
-        if not raw or not isinstance(raw, str):
+        if not raw or not isinstance(raw, str) or not self.name:
             return False
-        return "<CUSTOMER_NAME>" in self.scrub(raw)
+        parts = [p for p in self.name.split() if len(p) > 1]
+        if not parts:
+            return False
+        low = raw.lower()
+        return all(re.search(rf"\b{re.escape(p.lower())}\b", low) for p in parts)
 
     def contains_pii(self, text: str) -> list[str]:
         """Report any un-redacted PII found in `text`. Used by the output writer to check

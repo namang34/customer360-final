@@ -12,9 +12,12 @@ from typing import Any, Iterable
 from .pii import Redactor
 from .schema import Action, ConfidenceBand, HitlStatus, InferredState
 
-# Every event_id in this dataset looks like EVT_000123. The notes field must
-# cite at least one for any row that proposes an action -- see CheckpointError.
-EVENT_ID_PATTERN = re.compile(r"\bEVT_\d{4,}\b")
+# The notes field must cite at least one event_id for any row that proposes an
+# action -- see CheckpointError. The practice ids look like EVT_000123, but the
+# organisers' schema only promises "a unique identifier", so do NOT hard-code that
+# spelling: a differently formatted id would fail this check and abort the entire
+# run. Accept any PREFIX_DIGITS shape.
+EVENT_ID_PATTERN = re.compile(r"\b[A-Za-z][A-Za-z0-9]{1,9}[_-]\d{3,}\b")
 
 # Actions that the mid-term architecture requires to pass the corroboration guardrail
 # before they may fire.
@@ -69,7 +72,10 @@ class Checkpoint:
 
         # 1. Explainability is graded. A row that proposes an intervention must say
         # which events justify it.
-        if self.action is not Action.NO_ACTION and not EVENT_ID_PATTERN.search(self.notes):
+        cites_event = any(c and c in self.notes for c in self.citations) or bool(
+            EVENT_ID_PATTERN.search(self.notes)
+        )
+        if self.action is not Action.NO_ACTION and not cites_event:
             raise CheckpointError(
                 f"action={self.action.value} at {self.as_of_time.isoformat()} but notes cite no "
                 f"event_id. Explainability is a graded requirement; notes were: {self.notes!r}"
