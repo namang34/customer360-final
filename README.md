@@ -38,12 +38,16 @@ Read `docs/EVALUATION.md` for what these numbers do and do not prove — the
 confidence thresholds were calibrated against these eight checkpoints, so this is
 a calibration result, not independent evidence of generalisation.
 
-The models were measured too, not just assumed: scenario_03 run live made 74 model
-calls with no failures, matched the offline run on every graded field, and proposed
-an action on 24 of 74 days against the deterministic path's 42 — more conservative,
-with no graded answer lost. Getting there meant fixing four defects the fallbacks had
-been hiding. Both the result and the defects are in
-[`docs/EVALUATION.md`](docs/EVALUATION.md).
+The models were measured too, not just assumed — and they do worse. All three
+scenarios were run live: 231 model calls, zero fallbacks. scenario_01 was
+byte-identical to the deterministic path. scenario_03 matched on every graded field
+while proposing 24 actions against 42, more conservative with nothing lost. But on
+20 February in scenario_02 the live path read a new-child narrative as income
+disruption and held that for fifteen days before recovering, losing a graded
+checkpoint. **Offline scores 8/8; live would score 7/8**, which is why the numbers
+above are the offline ones. Getting the models running at all first required fixing
+five defects the fallbacks had been hiding. The full result, the failure and the
+defects are in [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 ## Quick start
 
