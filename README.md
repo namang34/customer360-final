@@ -11,12 +11,15 @@ Scored by `run_evaluation.py` against each scenario's `ground_truth.json`, offli
 
 | | scenario_01 | scenario_02 | scenario_03 | overall |
 |---|---|---|---|---|
-| `inferred_state` | 100% | 100% | 100% | **8/8** |
-| `confidence_band` | 100% | 100% | 100% | **8/8** |
-| `action` | 100% | 100% | 100% | **8/8** |
-| all fields exact | 100% | 100% | 100% | **8/8** |
-| false-positive checks | clean | clean | clean | **4/4** |
-| lead-time targets | met | met | met | **4/4** |
+| `inferred_state` | 3/3 | 2/2 | 3/3 | **8/8** |
+| `confidence_band` | 3/3 | 2/2 | 3/3 | **8/8** |
+| `action` | 3/3 | 2/2 | 3/3 | **8/8** |
+| all fields exact | 3/3 | 2/2 | 3/3 | **8/8** |
+| false-positive checks | 2/2 | 1/1 | 1/1 | **4/4** |
+| lead-time targets | 1/1 | 1/1 | 1/1 | **3/3** |
+
+Denominators are small and shown deliberately: eight graded checkpoints, four
+false-positive checks and three lead-time targets is the whole sample.
 
 237 tests pass in under 20 seconds.
 
@@ -92,8 +95,13 @@ simulated now. Enforced in two independent places:
   release_time <= as_of`, with `as_of` as a mandatory positional argument so a
   caller cannot forget it.
 
-A test asserts the two agree at all 74 checkpoints of all three scenarios, and
-another asserts the invariant on *every tick* of every run.
+Note the two senses of "checkpoint" in this README: the replay produces a daily
+checkpoint for all 74 days of each scenario, and eight of those — spread across
+the three scenarios — carry a ground-truth answer and are graded.
+
+A test asserts the two mechanisms agree at every one of those 74 daily
+checkpoints, in all three scenarios, and another asserts the invariant on *every
+tick* of every run.
 
 ## Layout
 
@@ -114,6 +122,7 @@ src/c360/
   guardrail.py    the >= 2 independent source systems rule
   critique.py     adversarial review + HITL stub
   prompts.py      every LLM prompt in the system, in one file
+  llm.py          model routing + the fallback every call has
   tracing.py      local JSONL trace + LangSmith
   pipeline.py     the orchestrator
   review.py       the ambiguity review queue -- escalation for uncertainty
@@ -122,8 +131,15 @@ run_replay.py       step-1 smoke test
 run_pipeline.py     replay -> decision -> file
 run_evaluation.py   run + score all scenarios
 watch.py            terminal visibility layer
-docs/               diagram, agent register, solution document, evaluation write-up
+compare_live.py     offline vs live, same run, side by side
+test_setup.py       checks the environment before anything else
+tests/              237 tests, eight files
+data/               the three practice scenarios, as supplied
+docs/               diagrams, agent register, solution document, evaluation write-up
 ```
+
+`out/` is written at run time and is deliberately not committed, so a stale file
+can never be mistaken for a fresh run's results.
 
 ## Non-negotiables
 

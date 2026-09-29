@@ -309,12 +309,12 @@ children.push(table([3140, 1550, 1550, 1550, 1570], [
   ["action", "3/3", "2/2", "3/3", "8/8"],
   ["action_subtype / hitl_status", "1/1", "1/1", "1/1", "3/3"],
   ["False-positive checks", "2/2", "1/1", "1/1", "4/4"],
-  ["Lead-time targets", "1/1", "1/1", "2/2", "4/4"],
+  ["Lead-time targets", "1/1", "1/1", "1/1", "3/3"],
 ], { centreData: true }));
 children.push(spacer(50));
 children.push(p(
   "Lead time is measured against the ideal_action_lead_time_days field: 5 days achieved against 1 required " +
-  "(scenario_01), 9 against 2 (scenario_02), and 3 against 3 (scenario_03). Scenario_03's margin comes from " +
+  "(scenario_01), 8 against 2 (scenario_02), and 3 against 3 (scenario_03). Scenario_03's margin comes from " +
   "the Usage Agent firing on the standing-instruction cancellation click two days before any money moves — " +
   "the clearest single argument for the swarm topology, since that agent reads a source system the " +
   "Transaction Agent never touches."
@@ -367,7 +367,7 @@ children.push(bullet([
 
 children.push(bullet([
   ["The sample is small. ", { bold: true }],
-  ["Eight graded checkpoints, four false-positive checks and four lead-time targets across three customers. " +
+  ["Eight graded checkpoints, four false-positive checks and three lead-time targets across three customers. " +
    "Every percentage above has a single-digit denominator.", {}],
 ]));
 

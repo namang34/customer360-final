@@ -13,7 +13,7 @@ every number below with no API keys and no network.
 | `action_subtype` (where graded) | 1/1 | 1/1 | 1/1 | **3/3** |
 | `hitl_status` (where graded) | 1/1 | 1/1 | 1/1 | **3/3** |
 | false-positive checks | 2/2 | 1/1 | 1/1 | **4/4** |
-| lead-time targets | 1/1 | 1/1 | 2/2 | **4/4** |
+| lead-time targets | 1/1 | 1/1 | 1/1 | **3/3** |
 
 237 automated tests pass in under 20 seconds.
 
@@ -108,9 +108,9 @@ high-confidence conclusion — while leaving low-confidence beliefs free to move
 A stricter margin would have prevented reaching `new_child_life_event` in time
 for the 20 February checkpoint.
 
-### 4. Three graded checkpoints per scenario is a very small sample
+### 4. Two or three graded checkpoints per scenario is a very small sample
 
-Eight checkpoints, four false-positive checks and four lead-time targets across
+Eight checkpoints, four false-positive checks and three lead-time targets across
 three customers. Every percentage above is out of a single-digit denominator.
 100% on eight points is meaningfully different from 100% on eight hundred.
 
@@ -160,12 +160,12 @@ Both stay invisible until they arrive and are released at ingestion time. A
 system sorting by `event_time` would claim to have known two days early, and every
 lead-time figure built on that would be wrong.
 
-### Lead time is met in all four cases
+### Lead time is met in all three cases
 
 | Scenario | Checkpoint | Ideal | Achieved |
 |---|---|---|---|
 | 01 | 26 Mar | ≥ 1 day | 5 days |
-| 02 | 27 Mar | ≥ 2 days | 9 days |
+| 02 | 27 Mar | ≥ 2 days | 8 days |
 | 03 | 08 Mar | ≥ 3 days | 3 days |
 
 Scenario_03's three days come from the Usage Agent firing on the
