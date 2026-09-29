@@ -121,6 +121,11 @@ Two different counts, deliberately not the same number: `should_synthesise` coun
 **agents** (is there anything to correlate?), the guardrail counts **source
 systems** (may we act?).
 
+`should_synthesise` is **recorded on every checkpoint, not enforced** -- synthesis
+runs regardless. Gating on it suppresses the early low-confidence readings the
+grading rewards and drops the score from 8/8 to 6/8; the measurement is in
+`docs/EVALUATION.md`, limitation 6.
+
 ---
 
 ## Layer 2 — Synthesis Agent · `synthesis.py`

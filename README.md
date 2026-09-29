@@ -133,7 +133,6 @@ run_pipeline.py     replay -> decision -> file
 run_evaluation.py   run + score all scenarios
 watch.py            terminal visibility layer
 compare_live.py     offline vs live, same run, side by side
-test_setup.py       checks the environment before anything else
 tests/              238 tests, eight files
 data/               the three practice scenarios, as supplied
 docs/               diagrams, agent register, solution document, evaluation write-up

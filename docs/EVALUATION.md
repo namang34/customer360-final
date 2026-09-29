@@ -118,7 +118,9 @@ three customers. Every percentage above is out of a single-digit denominator.
 
 Every test runs with `C360_OFFLINE=1`, so the language models are exercised
 manually rather than in CI. The deterministic fallbacks are what the 238 tests
-cover. `--live` should produce the same or better results — the LLM only
+cover. Measured: 83% line coverage across `src/c360` overall, but `llm.py` alone
+is 38% -- the provider construction and live-call paths are the part no test
+reaches. That single number is the honest shape of this limitation. `--live` should produce the same or better results — the LLM only
 adjudicates between close candidate states, refines an action already authorised
 by retrieved policy, and judges proportionality — but "should" is doing work in
 that sentence.
