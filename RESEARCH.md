@@ -5,11 +5,9 @@ Naman Goyal · Inter IIT Tech Meet 15.0 Prepathon · Natural Language Processing
 Everything read while designing and building this system, with what each source gave me and which
 part of the code it changed. Ordered by how much it actually mattered, not by date.
 
-The MAS topology, memory scoping and trigger design were settled before any code existed — they are
-in the mid-term submission of 15 September, unchanged. AI tooling was used to implement and debug
-that design and to calibrate thresholds against the practice scenarios, not to choose it. Where the
-design did change during the build it changed in response to what the data showed, and those changes
-are recorded in [`docs/EVALUATION.md`](docs/EVALUATION.md).
+The architecture was fixed before any code existed, and is unchanged from the mid-term submission
+of 15 September. AI tooling was used to build and debug it, not to choose it. Where it did change,
+the data is what changed it — see [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 Key files in the codebase:
 
