@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -43,7 +43,7 @@ from c360.findings import SignalStrength  # noqa: E402
 from c360.llm import NullLLM  # noqa: E402
 from c360.memory import EpisodicMemory  # noqa: E402
 from c360.pii import Redactor  # noqa: E402
-from c360.replay import ClockTick, EventTick, ReplayEngine  # noqa: E402
+from c360.replay import EventTick, ReplayEngine  # noqa: E402
 from c360.schema import Event  # noqa: E402
 from c360.state_board import StateBoard  # noqa: E402
 

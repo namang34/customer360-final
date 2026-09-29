@@ -79,7 +79,7 @@ class Document:
     metadata: dict[str, Any]
 
 
-# The seed corpus Written as policy prose rather than as a lookup table, because that is
+# The seed corpus. Written as policy prose rather than as a lookup table, because that is
 # what it is standing in for.
 
 POLICIES: list[Document] = [

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Sequence
@@ -120,7 +120,7 @@ class PerceptionAgent(ABC):
 
 
 def cited(events: Sequence[Any], limit: int = 3) -> str:
-    """Render event ids for a detail string: 'EVT_000457, EVT_000461 (+2 more)'."""
+    """Render event ids for a detail string: 'EVT_000457, EVT_000461, EVT_000469 (+2 more)'."""
     ids = [e.event_id for e in events]
     shown = ", ".join(ids[:limit])
     return shown + (f" (+{len(ids) - limit} more)" if len(ids) > limit else "")

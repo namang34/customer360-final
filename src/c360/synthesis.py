@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
 
 from . import prompts
 from .findings import Finding, SignalStrength
@@ -12,7 +11,7 @@ from .llm import LLM, LLMUnavailable, NullLLM, complete_json
 from .schema import ConfidenceBand, InferredState
 from .state_board import Corroboration, StateBoard
 
-# Signal -> state affinity Weights are per (state, signal). A finding contributes
+# Signal -> state affinity. Weights are per (state, signal). A finding contributes
 # strength.score * weight to that state's total.
 
 STATE_AFFINITY: dict[InferredState, dict[str, float]] = {
@@ -113,8 +112,10 @@ DECISIVE_SIGNALS = frozenset({
     "search_intent",
 })
 
-# How long a belief survives with no supporting evidence at all before its confidence
-# steps down one band.
+# Age of the last RECORDED DECISION past which a carried-forward belief steps down one
+# band. The pipeline records a decision at every checkpoint, so on a normal run this
+# age never grows and the step-down does not fire; it is reachable only when decisions
+# are written less often than they are read.
 CONFIDENCE_DECAY_DAYS = 60
 
 
@@ -139,9 +140,7 @@ class Synthesis:
 
 
 class SynthesisAgent:
-    """Usage: agent = SynthesisAgent(llm=get_llm("reasoning")) result =
-    agent.synthesise(as_of, board)
-    """
+    """Correlates the board's findings into one state and one confidence band."""
 
     def __init__(self, llm: LLM | None = None, window_days: float | None = None) -> None:
         self.llm = llm or NullLLM()
@@ -289,8 +288,9 @@ def score_states(findings: list[Finding]) -> dict[InferredState, float]:
 
 
 def confidence_for(findings: list[Finding], corroboration: Corroboration) -> ConfidenceBand:
-    """The confidence band. See the threshold block at the top of this module for the
-    calibration and its honest caveat.
+    """The confidence band. The thresholds it uses are the block at the top of this
+    module, calibrated against the three practice scenarios -- see docs/EVALUATION.md
+    for what that does and does not prove.
     """
     strong = {f.signal for f in findings if f.strength is SignalStrength.STRONG}
     sources = corroboration.independent_source_count

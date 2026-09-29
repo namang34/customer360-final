@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
 
 from .action import ActionProposal
 from .guardrail import GuardrailVerdict
 from . import prompts
 from .llm import LLM, LLMUnavailable, NullLLM, complete_json
-from .schema import Action, ConfidenceBand, HitlStatus, InferredState
+from .schema import Action, HitlStatus, InferredState
 from .synthesis import Synthesis
 
 # States where a sales offer is the wrong instinct however good the numbers look.

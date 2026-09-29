@@ -6,7 +6,7 @@ import json
 import os
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 # Model choices, overridable from .env so no code change is needed to swap them.

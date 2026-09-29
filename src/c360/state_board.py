@@ -5,15 +5,14 @@ the Synthesis Agent reads from.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Iterable, Sequence
 
 from .findings import Finding, SignalStrength
 from .memory import EpisodicMemory
 from .schema import Action, ConfidenceBand, HitlStatus, InferredState
 
-# How far back two findings can sit and still count as "the same window". 14 days is
-# chosen from the data, not plucked out of the air.
+# How far back two findings can sit and still count as "the same window".
 DEFAULT_WINDOW_DAYS = 30
 
 # Perception agents, named once so a typo in an agent name cannot silently create
@@ -42,7 +41,9 @@ class Corroboration:
 
     @property
     def is_corroborated(self) -> bool:
-        """THE GUARDRAIL PREDICATE."""
+        """The corroboration test, in board terms. guardrail.check applies the same rule
+    to the restricted Corroboration that synthesis produces, not to this one.
+    """
         return self.independent_source_count >= 2
 
     @property
@@ -88,10 +89,10 @@ class BoardState:
 
 
 class StateBoard:
-    """Usage: board = StateBoard(memory) board.publish(finding)                      #
-    perception agents write board.findings(now)                         # synthesis
-    reads board.corroboration(now)                    # the guardrail reads
-    board.current_state(now)                    # persisted belief
+    """The surface the perception swarm writes to and synthesis reads.
+
+    publish() is the write; findings(), corroboration() and current_state() are the
+    time-scoped reads. Every read takes as_of.
     """
 
     def __init__(self, memory: EpisodicMemory, window_days: float = DEFAULT_WINDOW_DAYS) -> None:
@@ -161,7 +162,12 @@ class StateBoard:
         )
 
     def should_synthesise(self, as_of: datetime, *, window_days: float | None = None) -> bool:
-        """THE AGENT-DEPENDENT TRIGGER."""
+        """The agent-dependent trigger: have >= 2 DISTINCT agents flagged something?
+
+        Note the count is agents, not source systems -- the guardrail counts those.
+        The pipeline records this on every checkpoint rather than gating on it; see
+        the note at its call site.
+        """
         found = self.findings(as_of, window_days=window_days)
         return len({f.agent for f in found}) >= 2
 

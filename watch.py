@@ -37,11 +37,10 @@ except ModuleNotFoundError:  # python-dotenv absent: real env vars still work
 
 from c360.pipeline import Pipeline  # noqa: E402
 from c360.replay import ClockTick, EventTick  # noqa: E402
-from c360.schema import Action, ConfidenceBand  # noqa: E402
+from c360.schema import Action  # noqa: E402
 
 try:
     from rich.console import Console
-    from rich.table import Table
     from rich.text import Text
 
     RICH = True

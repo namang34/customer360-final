@@ -1,4 +1,11 @@
-"""The replay engine."""
+"""The replay engine.
+
+History is ordered by event_time; live events are ordered by RELEASE time,
+max(ingestion_time, event_time), so an event can never be released before it
+happened and a late arrival surfaces on the day the bank learned of it. Within a
+single timestamp, sort_rank orders events (0) ahead of the clock tick (1), so a
+checkpoint always sees everything released up to and including its own moment.
+"""
 
 from __future__ import annotations
 
@@ -111,7 +118,7 @@ class ReplayEngine:
         # predates simulated_start and so none of it can leak the future.
         self.history = sorted(self.history_report.events, key=lambda e: (e.event_time, e.event_id))
 
-        # Live events are sorted by RELEASE time -- see the module docstring.
+        # Live events are sorted by RELEASE time -- see the module docstring above.
         self.live = sorted(self.live_report.events, key=lambda e: (e.release_time, e.event_id))
 
         self._validate()
@@ -176,7 +183,7 @@ class ReplayEngine:
         if not self._loaded:
             self.load()
 
-        # sort_rank: 0 = event, 1 = clock tick. See docstring above.
+        # sort_rank: 0 = event, 1 = clock tick, so a tick sees the day's events first.
         schedule: list[tuple[datetime, int, Event | None]] = [
             (e.release_time, 0, e) for e in self.live
         ]

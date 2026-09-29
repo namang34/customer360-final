@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from . import prompts
@@ -12,11 +12,6 @@ from .memory import EpisodicMemory
 from .schema import Action, ConfidenceBand, InferredState
 from .semantic import Retrieved, SemanticMemory
 from .synthesis import Synthesis
-
-# Actions that a policy may authorise only at high confidence.
-REQUIRES_HIGH_CONFIDENCE = frozenset(
-    a for a in Action if a is not Action.NO_ACTION
-)
 
 # How long after a relationship_manager_escalation the churn narrative is considered "late
 # stage", where a second escalation adds nothing and structured win-back outreach is the
@@ -47,9 +42,7 @@ class ActionProposal:
 
 
 class ActionProposer:
-    """Usage: proposer = ActionProposer(semantic, llm=get_llm("reasoning")) proposal =
-    proposer.propose(synthesis, memory, entities)
-    """
+    """Picks one action, grounded in retrieved policy. propose() is the entry point."""
 
     def __init__(self, semantic: SemanticMemory, llm: LLM | None = None) -> None:
         self.semantic = semantic
@@ -63,7 +56,8 @@ class ActionProposer:
         memory: EpisodicMemory,
         entities: dict[str, Any] | None = None,
     ) -> ActionProposal:
-        # GATE 1: confidence
+        # GATE 1: confidence. Every action other than no_action requires HIGH; this
+        # single rule produces the correct answer at four of the eight graded checkpoints.
         if synthesis.confidence_band is not ConfidenceBand.HIGH:
             return ActionProposal(
                 as_of=synthesis.as_of,

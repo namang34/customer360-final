@@ -21,7 +21,7 @@ Scored by `run_evaluation.py` against each scenario's `ground_truth.json`, offli
 Denominators are small and shown deliberately: eight graded checkpoints, four
 false-positive checks and three lead-time targets is the whole sample.
 
-237 tests pass in under 20 seconds.
+238 tests pass in under 20 seconds.
 
 Deliverables, by problem-statement section:
 
@@ -46,7 +46,7 @@ scenarios were run live: 231 model calls, zero fallbacks. scenario_01 was
 byte-identical to the deterministic path. scenario_03 matched on every graded field
 while proposing 24 actions against 42, more conservative with nothing lost. But on
 20 February in scenario_02 the live path read a new-child narrative as income
-disruption and held that for fifteen days before recovering, losing a graded
+disruption and held that for seventeen days before recovering, losing a graded
 checkpoint. **Offline scores 8/8; live would score 7/8**, which is why the numbers
 above are the offline ones. Getting the models running at all first required fixing
 five defects the fallbacks had been hiding. The full result, the failure and the
@@ -58,7 +58,7 @@ defects are in [`docs/EVALUATION.md`](docs/EVALUATION.md).
 conda activate customer360
 pip install -r requirements.txt
 
-python -m pytest tests/ -q          # 237 tests
+python -m pytest tests/ -q          # 238 tests
 python run_evaluation.py            # run + score all three scenarios
 python watch.py data/scenario_03 --speed 2   # watch it think, ~2.5 min
 python compare_live.py --scenario data/scenario_03   # offline vs live, side by side
@@ -127,13 +127,14 @@ src/c360/
   pipeline.py     the orchestrator
   review.py       the ambiguity review queue -- escalation for uncertainty
   scoring.py      the evaluation harness
-run_replay.py       step-1 smoke test
+run_replay.py       step-1 smoke test (pass --speed 0; the default is the
+                    scenario's own 30s per simulated day)
 run_pipeline.py     replay -> decision -> file
 run_evaluation.py   run + score all scenarios
 watch.py            terminal visibility layer
 compare_live.py     offline vs live, same run, side by side
 test_setup.py       checks the environment before anything else
-tests/              237 tests, eight files
+tests/              238 tests, eight files
 data/               the three practice scenarios, as supplied
 docs/               diagrams, agent register, solution document, evaluation write-up
 ```

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime
-from typing import Any
 
 from ..findings import Finding, SignalStrength
 from ..llm import LLMUnavailable, complete_json
@@ -26,7 +24,8 @@ ENGAGEMENT_DROP_RATIO = 0.4     # recent logins vs the customer's own baseline
 SHORT_SESSION_SECONDS = 45      # scenario_03 collapses to 18s and 10s
 SESSION_COLLAPSE_RATIO = 0.35
 
-# Keyword fallback for search intent. Used only when no LLM is configured.
+# Keyword fallback for search intent. Used whenever the model path yields nothing:
+# no LLM configured, a call that raises, or an answer outside this vocabulary.
 INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
     "financial_hardship": ("hardship", "payment plan", "defer", "forbearance", "cannot pay", "relief"),
     "child_planning": ("child", "education savings", "daycare", "childcare", "college fund", "baby"),

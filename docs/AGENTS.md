@@ -153,7 +153,7 @@ confidence stops an established belief being displaced by a single loud event.
 | **Fallback** | the highest-ranked eligible policy's action and subtype |
 
 **Gate 1 — confidence**: nothing but `no_action` below HIGH. This single rule
-produces the correct answer at five of the eight graded checkpoints. Retrieved
+produces the correct answer at four of the eight graded checkpoints. Retrieved
 policies are then filtered on metadata (`state`, `min_confidence`, `stage`) —
 nearest-neighbour is not the same as applicable.
 
@@ -193,7 +193,7 @@ regardless of evidence strength.
 | **Prompt** | none — a CLI prompt to a human |
 
 **Gate 4.** Any `action != no_action` → `escalated`. Ground truth marks every
-intervention in all three scenarios as escalated. `reject` turns the action into
+intervention it grades `hitl_status` on as escalated. `reject` turns the action into
 `no_action` in the output; recording `human_rejected` while still emitting the
 action would make the audit trail a lie.
 

@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -30,7 +30,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 os.environ["C360_OFFLINE"] = "1"
 
 from c360.action import ActionProposal  # noqa: E402
-from c360.findings import Finding, SignalStrength  # noqa: E402
 from c360.pipeline import Pipeline  # noqa: E402
 from c360.review import ReviewQueue, assess  # noqa: E402
 from c360.schema import Action, ConfidenceBand, InferredState  # noqa: E402

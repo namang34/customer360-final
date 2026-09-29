@@ -11,7 +11,7 @@ tautology -- a bug would have to exist identically in both to go unnoticed.
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -382,3 +382,38 @@ def test_a_decision_is_invisible_before_it_was_made(memory):
     )
     earlier = board.current_state(ts("2026-02-15T00:00:00Z"))
     assert earlier.is_default is True, "a future decision leaked into a past checkpoint"
+
+
+def test_temporal_leak_error_fires_if_the_sql_filter_is_ever_defeated(memory):
+    """
+    events_as_of filters in SQL and then re-checks every row in Python before
+    returning it. That second check is the belt to the SQL braces: it is what turns
+    a silently wrong answer into a loud failure.
+
+    Nothing in the shipped code can reach it, so the only way to prove it works is
+    to defeat the SQL clause deliberately. This test does that, and asserts the
+    guard catches what gets through.
+    """
+    memory.record_event(
+        make_event("EVT_FUTURE", "2026-04-01T09:00:00Z")
+    )
+
+    class LeakyConn:
+        """Passes everything through, but strips the two visibility clauses."""
+
+        def __init__(self, real):
+            self._real = real
+
+        def execute(self, sql, params=None):
+            sql = sql.replace("event_time <= :as_of", "1=1")
+            sql = sql.replace("release_time <= :as_of", "1=1")
+            return self._real.execute(sql, params or {})
+
+        def __getattr__(self, name):
+            return getattr(self._real, name)
+
+    memory.conn = LeakyConn(memory.conn)
+
+    with pytest.raises(TemporalLeakError) as excinfo:
+        memory.events_as_of(ts("2026-02-01T00:00:00Z"))
+    assert "EVT_FUTURE" in str(excinfo.value)

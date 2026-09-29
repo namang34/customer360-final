@@ -28,9 +28,7 @@ def configure_langsmith(project: str = "customer360") -> bool:
 
 
 class RunTrace:
-    """Usage: trace = RunTrace("out/scenario_03.trace.jsonl", redactor, tags={...})
-    trace.record(as_of, kind="checkpoint", **fields) trace.close()
-    """
+    """One JSONL record per traced moment, flushed per line and redacted on the way out."""
 
     def __init__(
         self,

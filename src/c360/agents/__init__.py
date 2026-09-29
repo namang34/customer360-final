@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Iterable, Sequence
+from typing import Sequence
 
 from ..findings import Finding
 from .base import SIGNALS, PerceptionAgent, PerceptionContext

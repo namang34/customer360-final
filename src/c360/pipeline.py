@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from . import guardrail as guardrail_module
 from .action import ActionProposal, ActionProposer
@@ -17,7 +15,7 @@ from .output import Checkpoint, InferredEventsWriter
 from .pii import Redactor
 from .replay import ClockTick, EventTick, ReplayEngine
 from .review import ReviewQueue
-from .schema import Action, ConfidenceBand, HitlStatus, InferredState
+from .schema import Action, HitlStatus
 from .semantic import SemanticMemory
 from .state_board import StateBoard
 from .synthesis import SynthesisAgent
@@ -53,8 +51,9 @@ class RunStats:
 
 
 class Pipeline:
-    """Usage: pipeline = Pipeline("data/scenario_03", offline=True) writer, stats =
-    pipeline.run() writer.write("out/scenario_03_inferred_events.json")
+    """Wires replay, memory, the swarm, synthesis and the decision layer together.
+
+    run() returns (writer, stats); the caller writes the graded file.
     """
 
     def __init__(
@@ -174,7 +173,10 @@ class Pipeline:
             self.board.publish_all(findings)
 
         # AGENT-DEPENDENT TRIGGER: >= 2 distinct perception agents flagged something in
-        # the window.
+        # the window. RECORDED, NOT ENFORCED -- synthesis runs on every checkpoint
+        # regardless, because it is also what carries an existing belief forward.
+        # Gating on this costs two graded checkpoints in scenario_01; see
+        # docs/EVALUATION.md. The trigger is in the trace on every row instead.
         triggered = self.board.should_synthesise(as_of)
         synthesis = self.synthesis.synthesise(as_of, self.board)
         self.stats.syntheses += 1

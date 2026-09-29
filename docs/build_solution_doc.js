@@ -125,13 +125,13 @@ children.push(p(
   "decide whether the bank should intervene."
 ));
 children.push(p(
-  "Volume is small — roughly 490 events per customer across ten weeks — so this is not a throughput " +
+  "Volume is small — 406 to 491 events per customer, of which 72 to 116 fall inside the ten-week replay " +
   "problem. Three things make it hard:"
 ));
 children.push(bullet([
   ["Temporal judgement. ", { bold: true }],
   ["Grading is at fixed checkpoints, on whether the right level of certainty was held on that date. Acting " +
-   "too early is penalised as heavily as too late: five of the eight graded checkpoints expect the state " +
+   "too early is penalised as heavily as too late: four of the eight graded checkpoints expect the state " +
    "identified correctly and the action still no_action.", {}],
 ]));
 children.push(bullet([
@@ -244,7 +244,7 @@ children.push(p(
   "source system, while every genuine narrative spans several — so the rule separates them structurally " +
   "rather than by recognising four specific events, which is why it should hold on unseen data. It counts " +
   "systems rather than events (three purchases at one merchant is one stream of evidence) and rather than " +
-  "agents (the Transaction Agent alone covers four systems and can legitimately corroborate itself). " +
+  "agents (the Transaction Agent alone covers five systems and can legitimately corroborate itself). " +
   "support_intervention and proactive_retention_outreach are deliberately unguarded: the bar should match " +
   "the cost of being wrong, and offering a payment plan to someone who may be struggling is not freezing " +
   "their funds."
@@ -255,7 +255,7 @@ children.push(p(
   "Models read support-ticket bodies, in-app search queries and consented social posts, adjudicate between " +
   "close candidate states, and judge proportionality. They are not used for spend rates, income deltas, " +
   "login frequency or the corroboration count. A model asked whether 0.14 logins per day is a large drop " +
-  "from 0.9 will usually be right and occasionally confidently wrong, with no way to distinguish the two; " +
+  "from 0.68 will usually be right and occasionally confidently wrong, with no way to distinguish the two; " +
   "the same comparison in code is right every time and can be shown to a reviewer. Every model call has a " +
   "tested deterministic fallback, so the full test suite and the graded run work with no network at all."
 ));
@@ -300,14 +300,14 @@ children.push(p(
 children.push(h1("4 · Results"));
 children.push(p(
   "Scored by the included harness against each scenario's ground_truth.json, offline and deterministic. " +
-  "237 automated tests pass in under twenty seconds.", { after: 60 }
+  "238 automated tests pass in under twenty seconds.", { after: 60 }
 ));
 children.push(table([3140, 1550, 1550, 1550, 1570], [
   ["Metric", "scenario_01", "scenario_02", "scenario_03", "Overall"],
   ["inferred_state", "3/3", "2/2", "3/3", "8/8"],
   ["confidence_band", "3/3", "2/2", "3/3", "8/8"],
   ["action", "3/3", "2/2", "3/3", "8/8"],
-  ["action_subtype / hitl_status", "1/1", "1/1", "1/1", "3/3"],
+  ["action_subtype / hitl_status", "2/2", "2/2", "2/2", "6/6"],
   ["False-positive checks", "2/2", "1/1", "1/1", "4/4"],
   ["Lead-time targets", "1/1", "1/1", "1/1", "3/3"],
 ], { centreData: true }));
@@ -354,11 +354,11 @@ children.push(bullet([
 
 children.push(bullet([
   ["The models lose a graded checkpoint. ", { bold: true }],
-  ["All 237 tests run offline, so the fallbacks are what continuous testing covers. All three " +
+  ["All 238 tests run offline, so the fallbacks are what continuous testing covers. All three " +
    "scenarios were then run live (231 model calls, no failures). scenario_01 was byte-identical; " +
    "scenario_03 matched on every graded field while proposing 24 actions against 42 \u2014 more " +
    "conservative, nothing lost. scenario_02 was wrong: on 20 February the live path read a new-child " +
-   "narrative as income disruption, and held that for fifteen days before recovering. Offline scores " +
+   "narrative as income disruption, and held that for seventeen days before recovering. Offline scores " +
    "8/8; live would score 7/8. The failure is in the early, weak-evidence phase \u2014 exactly where " +
    "lead time is earned. On this data, matching plus arithmetic beat the model at narrative judgement. " +
    "Running the models at all first required fixing five defects the fallbacks had been hiding; " +
@@ -377,7 +377,7 @@ children.push(bullet([
    "changed, because the graded timestamps are hidden and a missing row scores zero regardless of reasoning " +
    "quality. Hysteresis makes an established high-confidence belief harder to displace, which protects " +
    "against a red herring but would slow a genuine mid-narrative reversal. Checkpoints stop at " +
-   "simulated_end, so two trailing events in scenarios 01 and 02 enter memory without a following " +
+   "simulated_end, so two trailing events in each of scenarios 01 and 02 enter memory without a following " +
    "checkpoint — no graded checkpoint falls after them.", {}],
 ]));
 

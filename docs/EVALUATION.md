@@ -15,7 +15,7 @@ every number below with no API keys and no network.
 | false-positive checks | 2/2 | 1/1 | 1/1 | **4/4** |
 | lead-time targets | 1/1 | 1/1 | 1/1 | **3/3** |
 
-237 automated tests pass in under 20 seconds.
+238 automated tests pass in under 20 seconds.
 
 ---
 
@@ -117,11 +117,28 @@ three customers. Every percentage above is out of a single-digit denominator.
 ### 5. The LLM path is less tested than the deterministic path
 
 Every test runs with `C360_OFFLINE=1`, so the language models are exercised
-manually rather than in CI. The deterministic fallbacks are what the 237 tests
+manually rather than in CI. The deterministic fallbacks are what the 238 tests
 cover. `--live` should produce the same or better results — the LLM only
 adjudicates between close candidate states, refines an action already authorised
 by retrieved policy, and judges proportionality — but "should" is doing work in
 that sentence.
+
+### 6. The agent-dependent trigger is recorded, not enforced
+
+`StateBoard.should_synthesise` asks whether at least two distinct perception
+agents have flagged something in the window. The pipeline computes it on every
+checkpoint and writes it to the trace, but does **not** gate synthesis on it.
+
+That is a deliberate choice made after measuring the alternative, not an
+oversight. Synthesis is also the step that carries an existing belief forward, so
+skipping it on quiet days means a committed diagnosis silently lapses. Wired as a
+true gate, the graded score drops from 8/8 to 6/8 — scenario_01's 15 February and
+12 March checkpoints both lose `confidence_band`.
+
+So the honest statement is that this system has two enforced triggers, the
+event-driven and the time-driven, and one observed signal. The trigger is
+available on every trace row for anyone who wants to see when the swarm actually
+converged; it just is not a branch.
 
 ---
 
@@ -175,18 +192,19 @@ saw it first reads a source system the Transaction Agent never touches.
 
 ### Cost
 
-74 checkpoints per scenario, of which the large majority carry the previous belief
-forward with no reasoning call at all. The LLM is consulted only when the top two
+74 checkpoints per scenario. A few carry the previous belief forward with no
+reasoning call at all — 5, 1 and 5 respectively, on the days no agent has
+published anything. On the rest, the LLM is consulted only when the top two
 candidate states are within 25% of each other, when an action is actually being
-proposed, and when a proposal needs proportionality review — a handful of calls
-per scenario rather than 74.
+proposed, and when a proposal needs proportionality review. Measured live, that
+comes to 70, 87 and 74 calls per scenario.
 
 ---
 
 ## Reproducing
 
 ```bash
-python -m pytest tests/ -q       # 237 tests
+python -m pytest tests/ -q       # 238 tests
 python run_evaluation.py         # the table at the top
 python run_evaluation.py --live  # same, using Gemini/Groq from .env
 python watch.py data/scenario_03 --speed 2
@@ -257,7 +275,7 @@ right. That is a graded field, and the live run scores 50% on `inferred_state`
 where offline scores 100%.
 
 The failure has a clear shape. The live path called it job loss on **every day
-from 15 February to 3 March** — fifteen consecutive checkpoints — and then
+from 15 February to 3 March** — seventeen consecutive checkpoints — and then
 recovered. By the second graded checkpoint, 27 March, it agreed with the
 deterministic path and with ground truth. So the models did not fail randomly;
 they failed on the **early, weak-evidence phase** of the narrative and corrected
@@ -290,8 +308,8 @@ on ungraded days, where the model sometimes returns the *action* name as the
 subtype (`proactive_retention_outreach` instead of
 `retention_winback_contact`) and once returned nothing. `prompts.PROPOSER` asks
 for action and subtype in one response and the model collapses them. Ground truth
-checks `action_subtype` at two checkpoints and the model is right at both, so
-nothing is lost here — but the prompt is a real defect.
+checks `action_subtype` at one checkpoint per scenario and the model is right at
+all three, so nothing is lost here — but the prompt is a real defect.
 
 Taken together, three scenarios say something one scenario could not: the models
 are **not uniformly more conservative, nor uniformly worse**. They were identical
@@ -331,10 +349,10 @@ where one was asked to read a sentence.
 - **One run per scenario.** Temperature is 0 throughout, so runs should be
   reproducible, but that was not verified by repetition.
 
-### Four defects this exercise found, all invisible until now
+### Five defects this exercise found, all invisible until now
 
 The live path had never executed before this. Nothing that only breaks with a
-model in the loop had ever been exercised, and four separate faults had
+model in the loop had ever been exercised, and five separate faults had
 accumulated behind the fallbacks:
 
 1. **`.env` was never loaded.** `load_dotenv()` appeared nowhere in the codebase,

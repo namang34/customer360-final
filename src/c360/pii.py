@@ -10,7 +10,8 @@ from typing import Any
 FREE_TEXT_PAYLOAD_FIELDS = ("raw_text", "search_text", "counterparty_name", "merchant_name")
 
 # Generic patterns worth masking wherever they appear, independent of the customer's own
-# identity. ORDER MATTERS, and it is the opposite of the obvious one.
+# identity. ORDER MATTERS: emails are masked before names, because an email often
+# contains the name and masking the name first would leave a half-masked address.
 GENERIC_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("<EMAIL>", re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")),
     ("<SSN>", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
@@ -55,7 +56,7 @@ class Redactor:
         if not text or not isinstance(text, str):
             return text
         result = text
-        # Structured identifiers first -- see the note on GENERIC_PATTERNS.
+        # Structured identifiers first, in the order GENERIC_PATTERNS declares.
         for token, pattern in GENERIC_PATTERNS:
             result = pattern.sub(token, result)
         for token, pattern in self._name_patterns():

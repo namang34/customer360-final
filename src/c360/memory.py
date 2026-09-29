@@ -10,7 +10,7 @@ from typing import Any, Iterable, Sequence
 
 from .findings import Finding, SignalStrength
 from .output import Checkpoint
-from .schema import Action, ConfidenceBand, Event, HitlStatus, InferredState
+from .schema import Event
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
@@ -176,7 +176,7 @@ class EpisodicMemory:
         )
         self.conn.commit()
 
-    # Reading -- every method below takes as_of FIRST and REQUIRED
+    # Reading -- every query below takes as_of FIRST and REQUIRED (stats() is not a query)
 
     def events_as_of(
         self,

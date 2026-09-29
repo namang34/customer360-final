@@ -4,7 +4,7 @@ trading_brokerage.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from ..findings import Finding, SignalStrength
@@ -25,8 +25,8 @@ INCOME_TYPES = {"salary_credit"}
 REPLACEMENT_INCOME_TYPES = {"benefits_credit", "disability_credit", "unemployment_credit"}
 WINDFALL_TYPES = {"tax_refund", "bonus", "dividend_credit", "maturity_credit"}
 
-# Thresholds. These are calibrated against the three practice scenarios -- see
-# the note in synthesis.py about the overfitting risk that carries.
+# Thresholds, calibrated against the three practice scenarios. docs/EVALUATION.md
+# records the overfitting risk that carries.
 MAJOR_EXPENSE_ABSOLUTE = 5_000       # scenario_01's $8,500 hospital bill
 INCOME_DROP_RATIO = 0.7              # scenario_02's 4500 -> 2700 is a 40% cut
 LARGE_TRANSFER_ABSOLUTE = 10_000     # scenario_03's $22,500; scenario_01's $12,000 tuition
@@ -342,8 +342,8 @@ class TransactionAgent(PerceptionAgent):
             if typical <= 0:
                 continue
             silence = (as_of - events[-1].event_time).days
-            # TWO full missed cycles, not one. HONEST NOTE ON THIS THRESHOLD -- read
-            # before tuning it.
+            # TWO full missed cycles, not one. One cycle fires on the February gap in
+            # all three scenarios, which is a data artifact rather than a signal.
             if silence >= typical * 2:
                 stopped.append(txn_type)
                 evidence.append(events[-1])
@@ -352,9 +352,11 @@ class TransactionAgent(PerceptionAgent):
         if not stopped:
             return []
 
-        # STRONG only once the instruction is TWO full cadences overdue.
+        # Always STRONG: the filter above only admits instructions already two full
+        # cadences overdue, so there is no weaker case to distinguish. worst is kept
+        # because it is reported as a metric.
         worst = max(overdue_ratios)
-        strength = SignalStrength.STRONG if worst >= 2.0 else SignalStrength.MODERATE
+        strength = SignalStrength.STRONG
         return [
             self.finding(
                 as_of,

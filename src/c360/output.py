@@ -48,8 +48,9 @@ class Checkpoint:
     hitl_status: HitlStatus = HitlStatus.AUTO_APPROVED
     notes: str = ""
 
-    # Not serialised. Carried so the run log, the tests and the scoring harness
-    # can see WHICH events drove a decision without parsing the notes prose.
+    # Not serialised -- the graded file carries citations inside notes. Held on the
+    # object so the run log and the tests can see WHICH events drove a decision
+    # without parsing the notes prose.
     citations: tuple[str, ...] = field(default=(), compare=False)
     guardrail_checked: bool = field(default=False, compare=False)
 
@@ -66,7 +67,7 @@ class Checkpoint:
 
         # rules that are ours, not the dataset's
 
-        # 1. Explainability is graded. A row that proposes an intervention must    say
+        # 1. Explainability is graded. A row that proposes an intervention must say
         # which events justify it.
         if self.action is not Action.NO_ACTION and not EVENT_ID_PATTERN.search(self.notes):
             raise CheckpointError(
@@ -74,7 +75,7 @@ class Checkpoint:
                 f"event_id. Explainability is a graded requirement; notes were: {self.notes!r}"
             )
 
-        # 2. The mid-term design says any action other than no_action defaults    to
+        # 2. The mid-term design says any action other than no_action defaults to
         # escalated.
         if self.action is not Action.NO_ACTION and self.hitl_status is HitlStatus.AUTO_APPROVED:
             raise CheckpointError(
