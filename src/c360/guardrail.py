@@ -19,9 +19,7 @@ GUARDED_ACTIONS = frozenset({
 
 MIN_INDEPENDENT_SOURCES = 2
 
-# An action must not rest on one event wearing two hats. If a single event_id
-# accounts for every finding behind the proposal, that is one observation however
-# many systems it touched.
+# An action must not rest on one event wearing two hats.
 MIN_DISTINCT_EVENTS = 2
 
 

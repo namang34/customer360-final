@@ -98,7 +98,7 @@ class StateBoard:
         self.memory = memory
         self.window_days = window_days
 
-    # -- writing -----------------------------------------------------------
+    # writing
 
     def publish(self, finding: Finding) -> Finding:
         if finding.agent not in PERCEPTION_AGENTS:
@@ -112,7 +112,7 @@ class StateBoard:
     def publish_all(self, findings: Iterable[Finding]) -> list[Finding]:
         return [self.publish(f) for f in findings]
 
-    # -- reading -----------------------------------------------------------
+    # reading
 
     def findings(
         self,

@@ -17,15 +17,11 @@ TRANSFER_SYSTEMS = ("instant_payments", "ach_wire")
 # no language model needed to know that "healthcare" means healthcare.
 MEDICAL_CATEGORIES = {"healthcare", "pharmacy"}
 BABY_CATEGORIES = {"baby_products", "childcare", "toys"}
-# Merchant-name hints for categories the MCC does not capture. scenario_02's
-# Mothercare purchase is filed under mcc_category "clothing", so category alone
-# would miss it -- and it is a graded signal event.
+# Merchant-name hints for categories the MCC does not capture.
 BABY_MERCHANT_HINTS = ("mothercare", "babybaby", "buybuybaby", "baby", "mamas", "carters")
 
 INCOME_TYPES = {"salary_credit"}
-# Income that is a REPLACEMENT rather than the usual wage. In scenario_01 the
-# salary stops and benefits_credit appears at a much lower amount -- a stronger
-# and earlier signal than simply noticing the salary is late.
+# Income that is a REPLACEMENT rather than the usual wage.
 REPLACEMENT_INCOME_TYPES = {"benefits_credit", "disability_credit", "unemployment_credit"}
 WINDFALL_TYPES = {"tax_refund", "bonus", "dividend_credit", "maturity_credit"}
 
@@ -43,16 +39,14 @@ class TransactionAgent(PerceptionAgent):
     name = "transaction"
     source_systems = ("card_payments", LEDGER, "instant_payments", "ach_wire", "trading_brokerage")
 
-    # =====================================================================
     # EVENT-BASED
-    # =====================================================================
 
     def on_event(self, event, as_of: datetime, ctx: PerceptionContext) -> list[Finding]:
         findings: list[Finding] = []
         payload = event.payload
         amount = _number(payload.get("amount"))
 
-        # --- card activity ------------------------------------------------
+        # card activity
         if event.source_system == "card_payments" and event.event_type == "purchase":
             category = (payload.get("mcc_category") or "").lower()
             merchant = (payload.get("merchant_name") or "").lower()
@@ -105,9 +99,7 @@ class TransactionAgent(PerceptionAgent):
                     )
                 )
 
-        # A refund is money coming back, not distress. Emitted weakly so it is
-        # visible in the trace, but it must never on its own move a confidence
-        # band -- scenario_01's $2,500 resort refund is a planted red herring.
+        # A refund is money coming back, not distress.
         if event.source_system == "card_payments" and event.event_type == "refund":
             if amount >= 1_000:
                 findings.append(
@@ -121,7 +113,7 @@ class TransactionAgent(PerceptionAgent):
                     )
                 )
 
-        # --- ledger ---------------------------------------------------------
+        # ledger
         if event.source_system == LEDGER:
             txn_type = (payload.get("transaction_type") or "").lower()
 
@@ -142,9 +134,7 @@ class TransactionAgent(PerceptionAgent):
                 )
 
             if event.event_type == "deposit" and txn_type in WINDFALL_TYPES:
-                # scenario_03's tax refund. Recorded honestly as an inbound
-                # windfall; it is the guardrail, not a special case here, that
-                # stops one isolated deposit from triggering an offer.
+                # scenario_03's tax refund.
                 findings.append(
                     self.finding(
                         as_of,
@@ -175,7 +165,7 @@ class TransactionAgent(PerceptionAgent):
             if event.event_type == "standing_instruction":
                 findings.extend(self._new_commitment(event, as_of, ctx, txn_type, amount))
 
-        # --- transfers out ---------------------------------------------------
+        # transfers out
         if event.source_system in TRANSFER_SYSTEMS and event.event_type == "outbound_transfer":
             findings.extend(self._on_outbound_transfer(event, as_of, ctx, amount))
 
@@ -238,9 +228,8 @@ class TransactionAgent(PerceptionAgent):
                 )
             )
         elif amount >= LARGE_TRANSFER_ABSOLUTE:
-            # scenario_01's $12,000 tuition payment lands here: large, outbound,
-            # to a named third party. One event, one source system -- and the
-            # guardrail is what keeps it from escalating anything.
+            # scenario_01's $12,000 tuition payment lands here: large, outbound, to a
+            # named third party.
             findings.append(
                 self.finding(
                     as_of,
@@ -284,9 +273,7 @@ class TransactionAgent(PerceptionAgent):
                 )
         return findings
 
-    # =====================================================================
     # TIME-BASED -- things no single event can tell you
-    # =====================================================================
 
     def on_tick(self, as_of: datetime, ctx: PerceptionContext) -> list[Finding]:
         findings: list[Finding] = []

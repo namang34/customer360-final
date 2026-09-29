@@ -285,7 +285,7 @@ class SemanticMemory:
             name=f"{name}__{suffix}", embedding_function=self.embedder
         )
 
-    # -- writing -----------------------------------------------------------
+    # writing
 
     def upsert(self, collection, documents: Sequence[Document]) -> int:
         """Incremental upsert, content-hashed."""
@@ -318,7 +318,7 @@ class SemanticMemory:
             "patterns": self.upsert(self.patterns, PATTERNS),
         }
 
-    # -- reading -----------------------------------------------------------
+    # reading
 
     def retrieve_policies(self, query: str, k: int = 3) -> list[Retrieved]:
         return self._query(self.policies, query, k)

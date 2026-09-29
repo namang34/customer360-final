@@ -40,9 +40,7 @@ class RunTrace:
     ) -> None:
         self.path = Path(path) if path else None
         self.redactor = redactor
-        # customer_id + scenario + as_of on every line, as the brief asks. Tagging
-        # each RECORD rather than only the file means a trace stays useful after
-        # someone greps a few lines out of it.
+        # customer_id + scenario + as_of on every line, as the brief asks.
         self.tags = tags or {}
         self.entries: list[dict[str, Any]] = []
         self._handle = None

@@ -43,14 +43,11 @@ INTENT_STRENGTH = {
 }
 
 
-
 class UsageAgent(PerceptionAgent):
     name = "usage"
     source_systems = (WEB,)
 
-    # =====================================================================
     # EVENT-BASED
-    # =====================================================================
 
     def on_event(self, event, as_of: datetime, ctx: PerceptionContext) -> list[Finding]:
         if event.source_system != WEB:
@@ -147,9 +144,7 @@ class UsageAgent(PerceptionAgent):
             return "none", "low", "no keyword match"
         return best_intent, "medium", f"matched {best_kw!r}"
 
-    # =====================================================================
     # TIME-BASED
-    # =====================================================================
 
     def on_tick(self, as_of: datetime, ctx: PerceptionContext) -> list[Finding]:
         findings: list[Finding] = []

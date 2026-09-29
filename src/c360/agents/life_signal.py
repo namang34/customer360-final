@@ -35,7 +35,7 @@ class LifeSignalAgent(PerceptionAgent):
             return self._on_social(event, as_of, ctx)
         return []
 
-    # -- KYC ---------------------------------------------------------------
+    # KYC
 
     def _on_kyc(self, event, as_of, ctx) -> list[Finding]:
         payload = event.payload
@@ -43,9 +43,7 @@ class LifeSignalAgent(PerceptionAgent):
         old, new = payload.get("old_value"), payload.get("new_value")
 
         if subtype == "dependents_change":
-            # scenario_02 EVT_000373, the decisive record. Only an INCREASE is a
-            # new-child signal -- a decrease means something else entirely
-            # (a child leaving home, a bereavement) and must not be conflated.
+            # scenario_02 EVT_000373, the decisive record.
             if _as_int(new) > _as_int(old):
                 return [
                     self.finding(
@@ -100,7 +98,7 @@ class LifeSignalAgent(PerceptionAgent):
 
         return []
 
-    # -- consented social --------------------------------------------------
+    # consented social
 
     def _on_social(self, event, as_of, ctx) -> list[Finding]:
         # The consent gate. No consent, no reading -- whatever it says.

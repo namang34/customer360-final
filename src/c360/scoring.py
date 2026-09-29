@@ -160,7 +160,7 @@ def score_scenario(
     by_time = {row["as_of_time"]: row for row in rows}
     score = ScenarioScore(scenario=name or scenario_dir.name)
 
-    # ---- checkpoints ----------------------------------------------------
+    # checkpoints
     for expected in truth["checkpoints"]:
         key = expected["as_of_time"]
         got = by_time.get(key)
@@ -185,14 +185,14 @@ def score_scenario(
             )
         )
 
-        # ---- lead time --------------------------------------------------
+        # lead time
         ideal = expected.get("ideal_action_lead_time_days")
         if ideal:
             score.lead_times.append(
                 _lead_time(rows, key, expected["expected_action"], int(ideal))
             )
 
-    # ---- false positives -------------------------------------------------
+    # false positives
     for check in truth.get("false_positive_checks", []):
         score.false_positives.append(_false_positive(rows, scenario_dir, check))
 

@@ -13,8 +13,6 @@ from .schema import Action, ConfidenceBand, HitlStatus, InferredState
 from .synthesis import Synthesis
 
 # States where a sales offer is the wrong instinct however good the numbers look.
-# Pitching an investment product to someone drawing down savings to pay a
-# hospital bill is the failure the scenarios are built to catch.
 NO_SELL_STATES = frozenset({
     InferredState.MEDICAL_HARDSHIP,
     InferredState.FINANCIAL_DISTRESS_GENERAL,
@@ -24,7 +22,6 @@ NO_SELL_STATES = frozenset({
 })
 
 SELL_ACTIONS = frozenset({Action.PERSONALIZED_OFFER})
-
 
 
 @dataclass
@@ -65,13 +62,13 @@ class CritiqueAgent:
         if proposal.action is Action.NO_ACTION:
             return Critique("accept", "no_action requires no justification", {"trivial": True})
 
-        # --- check 1: the red-herring pattern (code) ------------------------
+        # check 1: the red-herring pattern (code)
         checks["corroborated"] = guardrail.passed
         if not guardrail.passed:
             self.rejections += 1
             return Critique("reject", guardrail.reason, checks)
 
-        # --- check 2: policy actually authorises this (code) ----------------
+        # check 2: policy actually authorises this (code)
         checks["policy_backed"] = bool(proposal.policy_ids)
         if not proposal.policy_ids:
             self.rejections += 1
@@ -81,14 +78,14 @@ class CritiqueAgent:
                 checks,
             )
 
-        # --- check 3: the action contradicts the diagnosis (code) -----------
+        # check 3: the action contradicts the diagnosis (code)
         contradiction = _contradiction(proposal.action, synthesis.inferred_state)
         checks["no_contradiction"] = contradiction is None
         if contradiction:
             self.rejections += 1
             return Critique("reject", contradiction, checks)
 
-        # --- check 4: single-event dominance (code) -------------------------
+        # check 4: single-event dominance (code)
         distinct_events = len(set(synthesis.corroboration.event_ids))
         checks["multiple_events"] = distinct_events >= 2
         if distinct_events < 2:
@@ -99,7 +96,7 @@ class CritiqueAgent:
                 checks,
             )
 
-        # --- check 5: proportionality (judgement -> model) -------------------
+        # check 5: proportionality (judgement -> model)
         judged = self._ask_llm(proposal, synthesis)
         if judged is None:
             return Critique(
@@ -184,9 +181,7 @@ def _downgrade(action: Action) -> Action:
     }.get(action, Action.NO_ACTION)
 
 
-# ---------------------------------------------------------------------------
 # HITL
-# ---------------------------------------------------------------------------
 
 @dataclass
 class HitlDecision:
@@ -238,8 +233,6 @@ class HitlStub:
                                 "Approved by reviewer.")
         if answer.startswith("r"):
             # A rejected action becomes no_action, and the output must say so.
-            # Recording human_rejected while still emitting the action would make
-            # the audit trail a lie.
             return HitlDecision(HitlStatus.HUMAN_REJECTED, Action.NO_ACTION, None,
                                 "Rejected by reviewer; no action taken.")
         if answer.startswith("m"):

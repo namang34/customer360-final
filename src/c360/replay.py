@@ -11,9 +11,7 @@ from .clock import SimClock, daily_boundaries
 from .schema import Event, LoadReport, load_events, load_json, parse_timestamp
 
 
-# ---------------------------------------------------------------------------
 # Config
-# ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
 class ReplayConfig:
@@ -41,9 +39,7 @@ class ReplayConfig:
         return (self.simulated_end - self.simulated_start).days
 
 
-# ---------------------------------------------------------------------------
 # Ticks -- the two things the stream can yield
-# ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
 class EventTick:
@@ -70,9 +66,7 @@ class ClockTick:
 Tick = EventTick | ClockTick
 
 
-# ---------------------------------------------------------------------------
 # Engine
-# ---------------------------------------------------------------------------
 
 class ReplayEngine:
     """Usage: engine = ReplayEngine("data/scenario_03", speed=0) engine.load() for event in
@@ -112,7 +106,7 @@ class ReplayEngine:
         )
         self._loaded = False
 
-    # -- loading ------------------------------------------------------------
+    # loading
 
     def load(self) -> "ReplayEngine":
         entities_path = self.dir / "entities.json"
@@ -122,9 +116,8 @@ class ReplayEngine:
         self.history_report = load_events(self.dir / "history_seed.jsonl", strict=self.strict)
         self.live_report = load_events(self.dir / "live_stream.jsonl", strict=self.strict)
 
-        # History is the backstory: it is loaded in one go by design, because all
-        # of it predates simulated_start and so none of it can leak the future.
-        # Sorted by event_time because that is how memory will reason about it.
+        # History is the backstory: it is loaded in one go by design, because all of it
+        # predates simulated_start and so none of it can leak the future.
         self.history = sorted(self.history_report.events, key=lambda e: (e.event_time, e.event_id))
 
         # Live events are sorted by RELEASE time -- see the module docstring.
@@ -186,7 +179,7 @@ class ReplayEngine:
             if report and not report.ok:
                 self.warnings.append(f"{report.path.name}: {len(report.rejected)} row(s) rejected")
 
-    # -- streaming ----------------------------------------------------------
+    # streaming
 
     def stream(self) -> Iterator[Tick]:
         """Yield ticks in simulated-time order, advancing the clock before each one."""
@@ -211,7 +204,7 @@ class ReplayEngine:
                 yield ClockTick(as_of=self.clock.now, events_since_last_tick=events_since_tick)
                 events_since_tick = 0
 
-    # -- introspection helpers (used heavily by the tests) -------------------
+    # introspection helpers (used heavily by the tests)
 
     def visible_events(self, as_of: datetime) -> list[Event]:
         """Every event the system is ALLOWED to know about at `as_of`."""

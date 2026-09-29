@@ -64,20 +64,18 @@ class Checkpoint:
         if self.as_of_time.tzinfo is None:
             raise CheckpointError("as_of_time must be timezone-aware")
 
-        # --- rules that are ours, not the dataset's -------------------------
+        # rules that are ours, not the dataset's
 
-        # 1. Explainability is graded. A row that proposes an intervention must
-        #    say which events justify it. Enforced in code because "the prompt
-        #    asked the LLM to cite event_ids" is not a guarantee of anything.
+        # 1. Explainability is graded. A row that proposes an intervention must    say
+        # which events justify it.
         if self.action is not Action.NO_ACTION and not EVENT_ID_PATTERN.search(self.notes):
             raise CheckpointError(
                 f"action={self.action.value} at {self.as_of_time.isoformat()} but notes cite no "
                 f"event_id. Explainability is a graded requirement; notes were: {self.notes!r}"
             )
 
-        # 2. The mid-term design says any action other than no_action defaults
-        #    to escalated. auto_approved alongside a real action is almost
-        #    certainly a bug in the HITL stub.
+        # 2. The mid-term design says any action other than no_action defaults    to
+        # escalated.
         if self.action is not Action.NO_ACTION and self.hitl_status is HitlStatus.AUTO_APPROVED:
             raise CheckpointError(
                 f"action={self.action.value} must not be auto_approved -- the architecture routes "
@@ -92,8 +90,6 @@ class Checkpoint:
             )
 
         # 4. A guarded action must have been through the corroboration check.
-        #    The guardrail itself lands in step 7; this makes it impossible to
-        #    ship a guarded action that bypassed it.
         if self.action in GUARDED_ACTIONS and not self.guardrail_checked:
             raise CheckpointError(
                 f"action={self.action.value} requires the >=2 independent source_systems "
@@ -187,7 +183,7 @@ class InferredEventsWriter:
             raise CheckpointError(f"{path} did not round-trip through JSON")
         return path
 
-    # -- self-checks the run script calls before declaring success ----------
+    # self-checks the run script calls before declaring success
 
     def covers(self, required: Iterable[datetime]) -> list[datetime]:
         """Return any required as_of_times that have NO row in this file."""

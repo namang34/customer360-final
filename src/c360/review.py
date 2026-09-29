@@ -56,7 +56,7 @@ def assess(synthesis: Synthesis, proposal: ActionProposal) -> ReviewItem | None:
 
     sources = synthesis.corroboration.source_systems
 
-    # --- contested: the arithmetic had to break a near-tie ------------------
+    # contested: the arithmetic had to break a near-tie
     ranked = sorted(synthesis.affinity.items(), key=lambda kv: -kv[1])
     if len(ranked) >= 2 and ranked[0][1] > 0:
         (top_state, top_score), (second_state, second_score) = ranked[0], ranked[1]
@@ -75,7 +75,7 @@ def assess(synthesis: Synthesis, proposal: ActionProposal) -> ReviewItem | None:
                 ),
             )
 
-    # --- weak but corroborated: breadth without strength --------------------
+    # weak but corroborated: breadth without strength
     if len(sources) >= MIN_SOURCES_FOR_REVIEW:
         return ReviewItem(
             as_of=synthesis.as_of,

@@ -138,8 +138,6 @@ class Synthesis:
         return self.inferred_state is not InferredState.NO_SIGNIFICANT_EVENT
 
 
-
-
 class SynthesisAgent:
     """Usage: agent = SynthesisAgent(llm=get_llm("reasoning")) result =
     agent.synthesise(as_of, board)
@@ -194,7 +192,7 @@ class SynthesisAgent:
             decided_by=decided_by,
         )
 
-    # -- state selection ---------------------------------------------------
+    # state selection
 
     def _choose(self, ranked, findings, corroboration) -> tuple[InferredState, str, str]:
         top_state, top_score = ranked[0]
@@ -230,7 +228,7 @@ class SynthesisAgent:
             self.llm_failures += 1
             return None
 
-    # -- nothing new -------------------------------------------------------
+    # nothing new
 
     def _carry_forward(self, as_of, board, corroboration) -> Synthesis:
         """No findings in the window -- keep believing what we believed."""
@@ -255,9 +253,7 @@ class SynthesisAgent:
         )
 
 
-# ---------------------------------------------------------------------------
 # Scoring
-# ---------------------------------------------------------------------------
 
 def score_states(findings: list[Finding]) -> dict[InferredState, float]:
     """Weighted affinity of each candidate state, given the findings in the window."""
@@ -304,10 +300,9 @@ def confidence_for(findings: list[Finding], corroboration: Corroboration) -> Con
     decisive = bool(strong & DECISIVE_SIGNALS)
 
     if len(strong) >= HIGH_MIN_STRONG:
-        # Two routes to high confidence, and they are alternatives not additions:
-        # breadth  -- three independent source systems agree, or intent   -- two systems
-        # agree AND one of the strong signals is the customer doing something
-        # deliberate.
+        # Two routes to high confidence, and they are alternatives not additions: breadth
+        # -- three independent source systems agree, or intent   -- two systems agree AND
+        # one of the strong signals is the customer doing something deliberate.
         if sources >= HIGH_MIN_SOURCES or (sources >= MEDIUM_MIN_SOURCES and decisive):
             return ConfidenceBand.HIGH
     if len(strong) >= MEDIUM_MIN_STRONG and sources >= MEDIUM_MIN_SOURCES:
@@ -329,8 +324,6 @@ def _rule_rationale(state: InferredState, findings: list[Finding], corroboration
 
 
 # How much better a challenger must score to displace the state we already hold.
-# Scaled by how confident we were, which is the principled shape: we should be
-# easy to talk out of a guess and hard to talk out of a well-evidenced conclusion.
 HYSTERESIS_MARGIN = {
     ConfidenceBand.LOW: 1.0,      # not committed -- follow the evidence freely
     ConfidenceBand.MEDIUM: 1.25,

@@ -51,11 +51,10 @@ class SupportAgent(PerceptionAgent):
         status = (payload.get("resolution_status") or "").lower()
         category = (payload.get("category") or "").lower()
 
-        # --- structural, no interpretation needed --------------------------
+        # structural, no interpretation needed
         if status in REJECTED_STATUSES:
-            # scenario_03 EVT_000412. A tenured, high-value customer asks for a
-            # $35 fee waiver and is refused. Small in money, large in meaning:
-            # every later churn behaviour dates from this.
+            # scenario_03 EVT_000412. A tenured, high-value customer asks for a $35 fee
+            # waiver and is refused.
             findings.append(
                 self.finding(
                     as_of,
@@ -97,12 +96,12 @@ class SupportAgent(PerceptionAgent):
                 )
             )
 
-        # --- what the words mean -------------------------------------------
+        # what the words mean
         findings.extend(self._classify_text(event, as_of, ctx))
 
         # De-duplicate: the category check and the text check can both land on
-        # hardship_contact for the same ticket, and one ticket should not count
-        # twice towards a confidence score.
+        # hardship_contact for the same ticket, and one ticket should not count twice
+        # towards a confidence score.
         return _dedupe(findings)
 
     def _classify_text(self, event, as_of, ctx) -> list[Finding]:

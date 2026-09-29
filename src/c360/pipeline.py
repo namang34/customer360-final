@@ -111,12 +111,10 @@ class Pipeline:
         self.stats = RunStats(embedder=self.semantic.embedder_name)
         self._llms = [fast, reasoning]
 
-    # =====================================================================
 
     def run(self) -> tuple[InferredEventsWriter, RunStats]:
-        # History is backstory: all of it predates simulated_start, so loading it
-        # up front cannot leak anything. The FILTER is what protects us, not
-        # withholding the data.
+        # History is backstory: all of it predates simulated_start, so loading it up front
+        # cannot leak anything.
         self.memory.record_events(self.engine.history)
         self.trace.record(
             self.engine.config.simulated_start,
@@ -175,9 +173,8 @@ class Pipeline:
         if findings:
             self.board.publish_all(findings)
 
-        # AGENT-DEPENDENT TRIGGER: >= 2 distinct perception agents flagged
-        # something in the window. Below that there is nothing to correlate, and
-        # the previous belief simply stands.
+        # AGENT-DEPENDENT TRIGGER: >= 2 distinct perception agents flagged something in
+        # the window.
         triggered = self.board.should_synthesise(as_of)
         synthesis = self.synthesis.synthesise(as_of, self.board)
         self.stats.syntheses += 1
@@ -216,9 +213,7 @@ class Pipeline:
         if hitl.status is HitlStatus.ESCALATED:
             self.stats.escalations += 1
 
-        # Escalation for ambiguity (PS 6.3). Runs on the FINAL action, so a
-        # checkpoint the critique rejected is still considered. Touches nothing
-        # in the graded row.
+        # Escalation for ambiguity (PS 6.3).
         flagged = self.review.consider(
             synthesis,
             ActionProposal(as_of=as_of, action=action, action_subtype=subtype,
@@ -274,9 +269,7 @@ class Pipeline:
 
         notes = " ".join(p for p in parts if p)
 
-        # An action needs citations to be constructible at all. If the rationale
-        # somehow lost them, append them rather than letting the row be rejected
-        # mid-run -- the evidence exists, this is only about surfacing it.
+        # An action needs citations to be constructible at all.
         if action is not Action.NO_ACTION and "EVT_" not in notes:
             cited = ", ".join(synthesis.event_ids[:5])
             notes = f"{notes} Evidence: {cited}."

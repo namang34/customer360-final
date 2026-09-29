@@ -15,9 +15,7 @@ FAST_MODEL = os.getenv("C360_FAST_MODEL", "gemini-3.1-flash-lite")
 REASONING_MODEL = os.getenv("C360_REASONING_MODEL", "gemini-3.1-flash-lite")
 GROQ_MODEL = os.getenv("C360_GROQ_MODEL", "openai/gpt-oss-20b")
 
-# Seconds to wait for one request before giving up on it. Deliberately short:
-# every caller has a deterministic fallback, so a slow answer is worth less than
-# a prompt one, and the run has to finish.
+# Seconds to wait for one request before giving up on it.
 REQUEST_TIMEOUT = float(os.getenv("C360_REQUEST_TIMEOUT", "25"))
 
 
@@ -46,9 +44,7 @@ class LLM(Protocol):
     def complete(self, system: str, user: str) -> str: ...
 
 
-# ---------------------------------------------------------------------------
 # The offline fallback
-# ---------------------------------------------------------------------------
 
 class NullLLM:
     """Returns nothing useful, on purpose."""
@@ -60,9 +56,7 @@ class NullLLM:
         raise LLMUnavailable("no LLM configured; caller must use its deterministic fallback")
 
 
-# ---------------------------------------------------------------------------
 # Real providers
-# ---------------------------------------------------------------------------
 
 def message_text(content: Any) -> str:
     """Pull the text out of a chat response."""
@@ -82,14 +76,11 @@ def message_text(content: Any) -> str:
     return str(content)
 
 
-
 class GeminiLLM:
     provider = "gemini"
 
     def __init__(self, model: str = FAST_MODEL, temperature: float = 0.0) -> None:
-        # temperature=0 throughout. This system is graded on reproducibility and
-        # on a scoring harness comparing runs; sampling variation would mean the
-        # same input scores differently on different days.
+        # temperature=0 throughout.
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         self.model = model
@@ -119,9 +110,7 @@ class GroqLLM:
         return message_text(message.content)
 
 
-# ---------------------------------------------------------------------------
 # Resilience wrapper
-# ---------------------------------------------------------------------------
 
 class ResilientLLM:
     """Retries with backoff, then fails over to a second provider, then gives up."""
@@ -193,9 +182,7 @@ class ResilientLLM:
         raise LLMUnavailable(f"all providers exhausted -- {detail}")
 
 
-# ---------------------------------------------------------------------------
 # Construction
-# ---------------------------------------------------------------------------
 
 def _build(factory, label: str, notes: list[str]):
     """Construct one provider, recording why it could not be built."""
@@ -237,9 +224,7 @@ def get_llm(
     return NullLLM()
 
 
-# ---------------------------------------------------------------------------
 # Parsing what comes back
-# ---------------------------------------------------------------------------
 
 _JSON_BLOCK = re.compile(r"\{.*\}", re.DOTALL)
 

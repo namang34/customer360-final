@@ -105,9 +105,7 @@ class EpisodicMemory:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
-    # =====================================================================
     # Writing
-    # =====================================================================
 
     def record_event(self, event: Event) -> None:
         self.record_events([event])
@@ -178,9 +176,7 @@ class EpisodicMemory:
         )
         self.conn.commit()
 
-    # =====================================================================
     # Reading -- every method below takes as_of FIRST and REQUIRED
-    # =====================================================================
 
     def events_as_of(
         self,
@@ -223,9 +219,7 @@ class EpisodicMemory:
         rows = self.conn.execute(sql, params).fetchall()
         events = [self._row_to_event(r) for r in rows]
 
-        # Belt and braces. The SQL above cannot return a future event, but this
-        # loop costs microseconds and converts "we believe the query is right"
-        # into "the process would crash if it were not".
+        # Belt and braces.
         for event in events:
             if event.event_time > as_of or event.release_time > as_of:
                 raise TemporalLeakError(
@@ -287,9 +281,7 @@ class EpisodicMemory:
         decisions = self.decisions_as_of(as_of)
         return decisions[-1] if decisions else None
 
-    # =====================================================================
     # Derived views the perception agents lean on
-    # =====================================================================
 
     def source_systems_active(
         self, as_of: datetime, *, since_days: float = 14
@@ -340,7 +332,6 @@ class EpisodicMemory:
         ]
         return len(events) / window
 
-    # =====================================================================
 
     @staticmethod
     def _row_to_event(row: sqlite3.Row) -> Event:

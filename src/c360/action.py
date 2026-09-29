@@ -13,16 +13,14 @@ from .schema import Action, ConfidenceBand, InferredState
 from .semantic import Retrieved, SemanticMemory
 from .synthesis import Synthesis
 
-# Actions that a policy may authorise only at high confidence. Everything in the
-# enum except no_action, in other words -- stated explicitly so the rule is
-# visible rather than implied.
+# Actions that a policy may authorise only at high confidence.
 REQUIRES_HIGH_CONFIDENCE = frozenset(
     a for a in Action if a is not Action.NO_ACTION
 )
 
-# How long after a relationship_manager_escalation the churn narrative is considered
-# "late stage", where a second escalation adds nothing and structured win-back outreach
-# is the right move instead.
+# How long after a relationship_manager_escalation the churn narrative is considered "late
+# stage", where a second escalation adds nothing and structured win-back outreach is the
+# right move instead.
 LATE_STAGE_AFTER_DAYS = 21
 
 # Behaviour that means the relationship has already substantially gone.
@@ -48,8 +46,6 @@ class ActionProposal:
         return self.action is not Action.NO_ACTION
 
 
-
-
 class ActionProposer:
     """Usage: proposer = ActionProposer(semantic, llm=get_llm("reasoning")) proposal =
     proposer.propose(synthesis, memory, entities)
@@ -67,7 +63,7 @@ class ActionProposer:
         memory: EpisodicMemory,
         entities: dict[str, Any] | None = None,
     ) -> ActionProposal:
-        # ---- GATE 1: confidence ------------------------------------------
+        # GATE 1: confidence
         if synthesis.confidence_band is not ConfidenceBand.HIGH:
             return ActionProposal(
                 as_of=synthesis.as_of,
@@ -92,7 +88,7 @@ class ActionProposer:
                 gate_reason="no significant state",
             )
 
-        # ---- retrieve policy ---------------------------------------------
+        # retrieve policy
         stage = self._stage(synthesis, memory)
         hits = self.semantic.retrieve_policies(self._query(synthesis, stage), k=4)
         eligible = self._eligible(hits, synthesis, stage)
@@ -124,7 +120,7 @@ class ActionProposer:
             + "."
         )
 
-        # ---- optional LLM refinement --------------------------------------
+        # optional LLM refinement
         refined = self._ask_llm(synthesis, eligible)
         if refined is not None:
             action, subtype, llm_rationale = refined
@@ -143,7 +139,7 @@ class ActionProposer:
             gate_reason=f"high confidence, stage={stage}",
         )
 
-    # -- helpers -----------------------------------------------------------
+    # helpers
 
     def _query(self, synthesis: Synthesis, stage: str) -> str:
         """Build the retrieval query from the diagnosis and the signals behind it."""

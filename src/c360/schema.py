@@ -10,9 +10,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 
-# ---------------------------------------------------------------------------
 # Output enums -- fixed by README_dataset_schema.md. Do not invent values.
-# ---------------------------------------------------------------------------
 
 class InferredState(str, Enum):
     NO_SIGNIFICANT_EVENT = "no_significant_event"
@@ -68,9 +66,7 @@ KNOWN_SOURCE_SYSTEMS = frozenset({
     "social_signal_consented",
 })
 
-# Which perception agent owns which source system. Defined here so the routing
-# table lives next to the schema it routes on, and so a source system can never
-# be silently dropped: anything not listed maps to None and gets logged.
+# Which perception agent owns which source system.
 PERCEPTION_ROUTING = {
     "card_payments": "transaction",
     "instant_payments": "transaction",
@@ -118,7 +114,7 @@ class Event:
     schema_version: str
     payload: dict[str, Any] = field(default_factory=dict)
 
-    # ---- derived properties -------------------------------------------------
+    # derived properties
 
     @property
     def release_time(self) -> datetime:
@@ -164,9 +160,7 @@ def event_from_dict(row: dict[str, Any]) -> Event:
 
     event_time = parse_timestamp(row["event_time"], "event_time")
 
-    # ingestion_time is optional in the envelope. If it is absent we assume the
-    # event was received the instant it happened -- the least-surprising default,
-    # and one that can never make an event visible EARLIER than it should be.
+    # ingestion_time is optional in the envelope.
     raw_ingestion = row.get("ingestion_time")
     ingestion_time = (
         parse_timestamp(raw_ingestion, "ingestion_time") if raw_ingestion else event_time
@@ -250,9 +244,8 @@ def load_events(path: Path, strict: bool = False) -> LoadReport:
             continue
 
         if event.event_id in seen_ids:
-            # Duplicates are recorded but kept -- dropping one could remove a
-            # signal event. Deduplication, if needed, belongs in episodic memory
-            # where there is an explicit primary key, not silently at load time.
+            # Duplicates are recorded but kept -- dropping one could remove a signal
+            # event.
             report.duplicate_event_ids.append(event.event_id)
         seen_ids.add(event.event_id)
 

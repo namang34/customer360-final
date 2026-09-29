@@ -37,7 +37,7 @@ class Redactor:
             account_ids=tuple(a.get("account_id") for a in accounts if a.get("account_id")),
         )
 
-    # -- the identity map ---------------------------------------------------
+    # the identity map
 
     def _name_patterns(self) -> list[tuple[str, re.Pattern[str]]]:
         """Match the full name and each of its parts, longest first."""
