@@ -128,11 +128,11 @@ embedder — a sandboxed evaluation run with no network still completes end to e
 Surveyed to understand how banks actually do next-best-action today, and what the agentic version is
 replacing. Skimmed rather than studied; they shaped framing rather than a specific line of code.
 
-- [Unified data for next best action in banking](https://www.backbase.com/blog/next-best-action-in-banking) — Backbase
+- [Next best action in banking starts with unified data, not AI](https://www.backbase.com/blog/next-best-action-in-banking) — Backbase
 - [How Discovery Bank delivers hyper-personalized banking at scale: behavioral AI, governed data, and real-time decisioning](https://www.databricks.com/blog/how-discovery-bank-delivers-hyper-personalized-banking-scale-behavioral-ai-governed-data-and) — Databricks
-- [Next Best Action explained](https://evam.com/blog/next-best-action-engine) — Evam
+- [Next Best Action Software: What a Real Decisioning Engine Actually Does](https://evam.com/blog/next-best-action-engine) — Evam
 - [Next Best Action](https://cdp.com/glossary/next-best-action/) — CDP.com glossary
-- [Understanding false positives in transaction monitoring](https://www.flagright.com/post/understanding-false-positives-in-transaction-monitoring) — Flagright
+- [Understanding False Positives in Transaction Monitoring: How to Reduce AML Alert Fatigue](https://www.flagright.com/post/understanding-false-positives-in-transaction-monitoring) — Flagright
 - [How to reduce false positives in AML transaction monitoring](https://www.unit21.ai/blog/reduce-false-positives-in-aml-transaction-monitoring) — Unit21
 
 The common shape: a customer data platform assembles a unified profile, a rules or ML engine scores
