@@ -130,10 +130,6 @@ replacing. Skimmed rather than studied; they shaped framing rather than a specif
 
 - [Next best action in banking starts with unified data, not AI](https://www.backbase.com/blog/next-best-action-in-banking) — Backbase
 - [How Discovery Bank delivers hyper-personalized banking at scale: behavioral AI, governed data, and real-time decisioning](https://www.databricks.com/blog/how-discovery-bank-delivers-hyper-personalized-banking-scale-behavioral-ai-governed-data-and) — Databricks
-- [Next Best Action Software: What a Real Decisioning Engine Actually Does](https://evam.com/blog/next-best-action-engine) — Evam
-- [Next Best Action](https://cdp.com/glossary/next-best-action/) — CDP.com glossary
-- [Understanding False Positives in Transaction Monitoring: How to Reduce AML Alert Fatigue](https://www.flagright.com/post/understanding-false-positives-in-transaction-monitoring) — Flagright
-- [How to reduce false positives in AML transaction monitoring](https://www.unit21.ai/blog/reduce-false-positives-in-aml-transaction-monitoring) — Unit21
 
 The common shape: a customer data platform assembles a unified profile, a rules or ML engine scores
 eligibility, and a human or campaign tool sends the message. It is a *pull* architecture — something
@@ -142,31 +138,23 @@ argument for ambient agents.
 
 ---
 
-## 3. Tooling and API documentation consulted
+## 3. Still to read
 
-Reference material, read as needed rather than studied.
-
-- LangChain Google GenAI integration — <https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai>
-- LangChain Groq integration — <https://docs.langchain.com/oss/python/integrations/chat/groq>
-- LangSmith tracing — <https://docs.langchain.com/langsmith/observability>
-- Python `sqlite3` — <https://docs.python.org/3/library/sqlite3.html>
-- Python `dataclasses` (frozen dataclasses for immutable events) — <https://docs.python.org/3/library/dataclasses.html>
-- pytest — <https://docs.pytest.org/>
-
----
-
-## 4. Still to read
-
-Identified as relevant, not yet worked through. Listed so the gap is visible rather than hidden.
+Identified as relevant, not yet worked through. Listed so the gap is visible rather than hidden,
+with the reason each one is on the list.
 
 - Shinn et al., "Reflexion: Language Agents with Verbal Reinforcement Learning" (2023) — <https://arxiv.org/abs/2303.11366>
+  · a self-critique loop that learns across attempts; `critique.py` does a single bounded pass and does not.
 - Madaan et al., "Self-Refine: Iterative Refinement with Self-Feedback" (2023) — <https://arxiv.org/abs/2303.17651>
+  · the same question from the other side: how many refinement rounds actually pay for themselves.
 - Weng, Lilian, "LLM Powered Autonomous Agents" — <https://lilianweng.github.io/posts/2023-06-23-agent/>
+  · a survey of the field; would have been a faster route into it than reading the papers piecemeal.
 - Anthropic, "Effective context engineering for AI agents" — <https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents>
+  · what to put in a prompt and what to leave in a store — directly relevant to the findings-not-events rule.
 
 ---
 
-## 5. Where each source landed, at a glance
+## 4. Where each source landed, at a glance
 
 | Source | Code it shaped |
 |---|---|
