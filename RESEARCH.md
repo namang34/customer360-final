@@ -5,9 +5,10 @@ Naman Goyal · Inter IIT Tech Meet 15.0 Prepathon · Natural Language Processing
 Everything read while designing and building this system, with what each source gave me and which
 part of the code it changed. Ordered by how much it actually mattered, not by date.
 
-The architecture was fixed before any code existed, and is unchanged from the mid-term submission
-of 15 September. AI tooling was used to build and debug it, not to choose it. Where it did change,
-the data is what changed it — see [`docs/EVALUATION.md`](docs/EVALUATION.md).
+The architecture — topology, memory tiers, triggers — was fixed before any code existed, and is
+unchanged from the mid-term submission of 15 September. AI tooling was used to build and debug it,
+not to choose it. Thresholds and detectors did move during the build, and what moved them was the
+data — see [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 Key files in the codebase:
 

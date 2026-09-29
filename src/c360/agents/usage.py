@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from ..findings import Finding, SignalStrength
-from ..llm import LLMUnavailable, complete_json
+from ..llm import LLMUnavailable, NullLLM, complete_json
 from .. import prompts
 from .base import PerceptionAgent, PerceptionContext, cited
 
@@ -111,7 +111,7 @@ class UsageAgent(PerceptionAgent):
         ]
 
     def _llm_intent(self, text: str, ctx: PerceptionContext):
-        if isinstance(ctx.llm, type(None)):
+        if isinstance(ctx.llm, NullLLM):
             return None, None, None, None
         try:
             result = complete_json(
@@ -206,7 +206,9 @@ class UsageAgent(PerceptionAgent):
         baseline_avg = sum(_seconds(e) for e in history) / len(history)
         if baseline_avg <= 0:
             return []
-        if recent_avg > baseline_avg * SESSION_COLLAPSE_RATIO and recent_avg > SHORT_SESSION_SECONDS:
+        # Both must hold to count as a collapse: a large relative drop AND sessions
+        # now short in absolute terms. Either one alone is not a signal.
+        if recent_avg > baseline_avg * SESSION_COLLAPSE_RATIO or recent_avg > SHORT_SESSION_SECONDS:
             return []
 
         return [

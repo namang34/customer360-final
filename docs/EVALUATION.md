@@ -68,7 +68,7 @@ scenario_03  rent/gym/utilities
 That is a data-generation artifact, not behaviour: scenarios 01 and 02 resume
 normally on 1 April, and only scenario_03 — who actually cancelled on 4 March —
 stops for good. With a one-missed-cycle threshold the detector fired in **all
-three** scenarios in mid-February, including the two customers who are not
+three** scenarios in the first days of February, including the two customers who are not
 churning, and pushed scenario_03's 15 February checkpoint to high confidence when
 ground truth expects low.
 
@@ -120,10 +120,8 @@ Every test runs with `C360_OFFLINE=1`, so the language models are exercised
 manually rather than in CI. The deterministic fallbacks are what the 238 tests
 cover. Measured: 83% line coverage across `src/c360` overall, but `llm.py` alone
 is 38% -- the provider construction and live-call paths are the part no test
-reaches. That single number is the honest shape of this limitation. `--live` should produce the same or better results — the LLM only
-adjudicates between close candidate states, refines an action already authorised
-by retrieved policy, and judges proportionality — but "should" is doing work in
-that sentence.
+reaches. That single number is the honest shape of this limitation. The live path has since been measured rather than
+assumed, and it scores worse -- see "The models lose a graded checkpoint" below.
 
 ### 6. The agent-dependent trigger is recorded, not enforced
 
@@ -135,7 +133,10 @@ That is a deliberate choice made after measuring the alternative, not an
 oversight. Synthesis is also the step that carries an existing belief forward, so
 skipping it on quiet days means a committed diagnosis silently lapses. Wired as a
 true gate, the graded score drops from 8/8 to 6/8 — scenario_01's 15 February and
-12 March checkpoints both lose `confidence_band`.
+12 March checkpoints both lose `inferred_state` (12 March loses
+`confidence_band` too). Only the Transaction Agent publishes anything in that
+scenario before 20 March, so under any true gate synthesis never runs and both
+checkpoints report the cold-start `no_significant_event`.
 
 So the honest statement is that this system has two enforced triggers, the
 event-driven and the time-driven, and one observed signal. The trigger is
@@ -155,9 +156,12 @@ converged; it just is not a branch.
 | 02 | `EVT_000328` | $600 electronics purchase (card_payments) | fraud_hold | clean |
 | 03 | `EVT_000447` | $5,200 tax refund (core_banking_ledger) | personalized_offer | clean |
 
-Each is a single event on a single source system. The guardrail counts
-independent source systems, so all four are blocked by the same rule for the same
-structural reason — not by four special cases. Three separate defences apply:
+Each is a single event on a single source system, so one structural property --
+no corroboration -- accounts for all four, not four special cases. On this data
+Gate 1 is what actually stops them: every one of these checkpoints records
+`gate_reason="confidence below high"`, and `guardrail_blocks=0` across all three
+scenarios. The guardrail is the rule that *would* stop them if confidence ever
+got that far. Three separate defences apply:
 
 1. **Confidence gate** — nothing but `no_action` below high confidence.
 2. **Guardrail** — guarded actions need ≥ 2 independent source systems and ≥ 2
@@ -227,9 +231,9 @@ graded path cannot do this: Gate 1 turns anything below high confidence into
 system asks for a human when it is certain and says nothing when it is unsure.
 
 `review.py` closes that as a **parallel** channel rather than a change to
-`hitl_status` — which is a graded field that ground truth marks `auto_approved` at
-exactly these checkpoints. A test asserts every flagged checkpoint still reads
-`no_action / auto_approved` in the graded file.
+`hitl_status`. Ground truth grades `hitl_status` at three checkpoints only, all
+`escalated`, and no flagged checkpoint is one of them. A test asserts every
+flagged checkpoint still reads `no_action / auto_approved` in the graded file.
 
 What it raises, across 74 checkpoints per scenario:
 
@@ -359,7 +363,7 @@ accumulated behind the fallbacks:
 
 1. **`.env` was never loaded.** `load_dotenv()` appeared nowhere in the codebase,
    so no key ever reached `get_llm()`. `--live` printed `[live LLM]` and ran fully
-   deterministic. Fixed at the three entry points.
+   deterministic. Fixed at every entry point.
 2. **A missing optional package disabled the primary provider.** Both clients were
    constructed inside one `try`, so `ImportError` from the Groq fallback destroyed
    the working Gemini client, and `except ImportError: pass` swallowed the reason.

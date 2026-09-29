@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from ..findings import Finding, SignalStrength
-from ..llm import LLMUnavailable, complete_json
+from ..llm import LLMUnavailable, NullLLM, complete_json
 from .. import prompts
 from .base import PerceptionAgent, PerceptionContext, cited
 
@@ -142,6 +142,8 @@ class SupportAgent(PerceptionAgent):
         ]
 
     def _llm_theme(self, text: str, author: str, ctx: PerceptionContext):
+        if isinstance(ctx.llm, NullLLM):
+            return None, None, None, None
         try:
             result = complete_json(
                 ctx.llm,

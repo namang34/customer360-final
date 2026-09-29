@@ -315,7 +315,7 @@ def test_duplicate_source_systems_cannot_inflate_the_count(memory):
 
 def test_one_agent_can_corroborate_across_its_own_source_systems(memory):
     """
-    The Transaction Agent covers four source systems. A salary stop plus a savings
+    The Transaction Agent covers five source systems. A salary stop plus a savings
     drawdown is two independent streams of evidence even though one agent saw
     both -- which is exactly why the guardrail counts systems, not agents.
     """

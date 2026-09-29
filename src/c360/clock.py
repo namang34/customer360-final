@@ -72,6 +72,12 @@ def daily_boundaries(start: datetime, end: datetime, step: timedelta = timedelta
     if start > end:
         return
     current = start
+    if step == timedelta(days=1):
+        # Ground truth timestamps every checkpoint at 00:00Z, so a daily cycle has to
+        # land on midnight even if the replay window opens mid-day. All three practice
+        # configs start at midnight, which would hide the difference.
+        midnight = start.replace(hour=0, minute=0, second=0, microsecond=0)
+        current = midnight if midnight >= start else midnight + step
     while current <= end:
         yield current
         current += step

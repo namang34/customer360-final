@@ -46,7 +46,8 @@ Four agents, disjoint source systems, no interdependency. Each implements
 | **Prompt** | none — every detection here is arithmetic |
 | **Emits** | `income_disruption`, `income_replacement`, `major_medical_expense`, `healthcare_spend`, `savings_drawdown`, `large_outbound_transfer`, `self_transfer_external`, `salary_swept_out`, `standing_instruction_stopped`, `new_recurring_commitment`, `card_spend_collapse`, `baby_retail_spend`, `large_inbound_deposit`, `unusual_refund` |
 
-The only agent that can corroborate itself: a salary stopping
+An agent that can corroborate itself -- the Life-Signal Agent spans two source
+systems too, but this is the pair that does the work on this data: a salary stopping
 (`core_banking_ledger`) and money leaving for a rival bank (`instant_payments`)
 are two independent streams of evidence from one agent. This is why the guardrail
 counts source systems rather than agents.
@@ -66,7 +67,8 @@ collapse. None of these can be detected from a single event.
 | **Fallback** | `INTENT_KEYWORDS` longest-phrase match |
 | **Emits** | `cancellation_feature_used`, `engagement_drop`, `session_length_collapse`, `search_intent` |
 
-`cancellation_feature_used` is the earliest churn signal in scenario_03 — a click
+`cancellation_feature_used` is the *decisive* churn signal in scenario_03 -- not the
+earliest, which is the denied support ticket on 6 February. It is a click
 on `manage_standing_instructions_cancel` two days before any money moves, and the
 source of that scenario's three-day lead time.
 
@@ -222,9 +224,9 @@ not on persistence — an unchanged situation is already on the queue, and the f
 implementation produced 38 items across scenario_01's 74 checkpoints by ignoring
 that.
 
-Nothing here touches a `Checkpoint`. `hitl_status` is graded and ground truth
-marks these rows `auto_approved`; the queue is a second artifact written beside
-the graded file.
+Nothing here touches a `Checkpoint`. Ground truth grades `hitl_status` at three
+checkpoints only, none of which is a flagged one, so a queue entry never collides
+with a graded field; the queue is a second artifact written beside the graded file.
 
 ---
 

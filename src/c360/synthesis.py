@@ -311,7 +311,17 @@ def _rule_rationale(state: InferredState, findings: list[Finding], corroboration
     """A one-sentence explanation naming real signals and real event ids."""
     relevant = [f for f in findings if _supports(state, f)]
     relevant.sort(key=lambda f: -f.strength.score)
-    named = ", ".join(f.signal.replace("_", " ") for f in relevant[:3]) or "weak indicators"
+    # Distinct SIGNALS, not findings. A tick-based detector republishes the same signal
+    # every day it still holds, so taking the top three findings would name one signal
+    # three times -- and the notes field is the graded explanation.
+    seen: list[str] = []
+    for f in relevant:
+        label = f.signal.replace("_", " ")
+        if label not in seen:
+            seen.append(label)
+        if len(seen) == 3:
+            break
+    named = ", ".join(seen) or "weak indicators"
     ids = ", ".join(corroboration.event_ids[:4])
     return (
         f"{state.value.replace('_', ' ').capitalize()} indicated by {named} across "
