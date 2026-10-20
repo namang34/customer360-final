@@ -1,0 +1,30 @@
+{
+  "customer_id": "CUST_00901",
+  "household_id": null,
+  "profile": {
+    "name": "Jordan Ellis",
+    "age": 41,
+    "occupation": "operations manager",
+    "customer_value_tier": "standard",
+    "tenure_months": 84,
+    "marital_status": "married",
+    "dependents": 2
+  },
+  "accounts": [
+    {
+      "account_id": "ACC_CHK_901",
+      "type": "checking",
+      "opened_date": "2019-10-02"
+    },
+    {
+      "account_id": "ACC_SAV_901",
+      "type": "savings",
+      "opened_date": "2019-10-02"
+    },
+    {
+      "account_id": "ACC_CC_901",
+      "type": "credit_card",
+      "opened_date": "2020-03-18"
+    }
+  ]
+}
