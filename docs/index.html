@@ -479,6 +479,40 @@ footer { border-top: 1px solid var(--rule); padding: 2rem 0 3rem; font-size: .92
   </div>
 </section>
 
+<section id="lessons">
+  <div class="wrap">
+    <h2>What building it taught</h2>
+    <p class="measure">These are the lessons recorded in the project’s own evaluation write-up, including the ones that reflect badly on the first version.</p>
+    <div class="two-col" style="margin-top:1.75rem">
+      <div>
+        <h3 style="margin-top:0">A fallback can hide a bug</h3>
+        <p>Every model call has a deterministic fallback, so a failure never kills a run. The same property made a broken live setup look healthy: it printed “live LLM”, finished, and scored 8/8, because those were the offline scores. Five defects sat behind the fallbacks until the live path was measured, including a <code>.env</code> file that was never loaded. <code>compare_live.py</code> now warns when a “live” run made no successful model calls.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Measure the model instead of assuming it</h3>
+        <p>On 20 February in scenario 2, the live models read a new-child pattern as income disruption for seventeen days and lost a graded checkpoint. Keyword matching and arithmetic got it right. The models stay in for reading free text. Corroboration and the guardrail stay arithmetic.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Test the rule you chose not to use</h3>
+        <p>The check that asks whether two agents have flagged something is recorded on every day but not enforced. Wiring it in as a real gate dropped the score from 8/8 to 6/8, because that same step is what carries a belief forward on quiet days.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">An alert that fires every day stops being read</h3>
+        <p>The first version of the review queue raised 38 items for scenario 1 by restating the same two sources every day for five weeks. It now raises an item only when the picture changes, and a test caps it at ten.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Say what the score does not prove</h3>
+        <p>The thresholds were calibrated on the same eight checkpoints they are scored on, so 8/8 confirms the calibration and says nothing about generalising. The write-up says so, and publishes the live 7/8 next to the offline 8/8.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Hindsight flatters lead times</h3>
+        <p>A system that sorts events by when they happened would claim to have known about two planted late events days before it could have. The replay releases each event only once it has arrived, so the 5, 8 and 3-day lead times are not inflated.</p>
+      </div>
+    </div>
+    <p class="measure" style="margin-top:2rem">The full account is in <a href="https://github.com/namang34/customer360-final/blob/main/docs/EVALUATION.md">docs/EVALUATION.md</a>.</p>
+  </div>
+</section>
+
 <section id="limits">
   <div class="wrap">
     <h2>What this does not prove</h2>
