@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replay: Agentic Customer 360</title>
+<meta name="description" content="Step through all 74 days of each practice scenario and see what the system believed, what it did, and why, next to the answer key.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2325389A'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23F5F8F4' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #F5F8F4;
+  --bar: #E0ECE3;
+  --ink: #15231B;
+  --muted: #4F6256;
+  --rule: #A9BDB0;
+  --stamp: #25389A;
+  --gutter: clamp(16px, 4vw, 32px);
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 1.0625rem; line-height: 1.6; color-scheme: light; }
+a { color: var(--stamp); text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--stamp); outline-offset: 3px; border-radius: 2px; }
+.skip { position: absolute; left: -999px; top: 0; background: var(--ink); color: var(--paper); padding: .6rem 1rem; z-index: 10; }
+.skip:focus { left: var(--gutter); top: 8px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 var(--gutter); }
+.measure { max-width: 66ch; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.site-head { border-bottom: 1px solid var(--rule); }
+.site-head .wrap { display: flex; flex-wrap: wrap; gap: .5rem 2rem; align-items: baseline; justify-content: space-between; padding-top: 1rem; padding-bottom: 1rem; }
+.brand { font-family: var(--serif); font-weight: 600; font-size: 1.1rem; color: var(--ink); text-decoration: none; }
+nav ul { display: flex; flex-wrap: wrap; gap: .25rem 1.5rem; list-style: none; margin: 0; padding: 0; font-size: .95rem; }
+nav a { color: var(--ink); }
+nav a[aria-current="page"] { font-weight: 600; text-decoration-thickness: 2px; }
+
+h1, h2 { font-family: var(--serif); font-weight: 600; margin: 0; letter-spacing: -0.012em; }
+h1 { font-size: clamp(2.2rem, 5.4vw, 3.4rem); line-height: 1.05; }
+h2 { font-size: clamp(1.4rem, 2.6vw, 1.8rem); line-height: 1.2; margin-bottom: .6rem; }
+h3 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 .35rem; }
+p { margin: 0 0 1rem; }
+.lead { font-size: 1.2rem; line-height: 1.5; margin-top: 1rem; }
+.muted { color: var(--muted); }
+.small { font-size: .9rem; }
+.intro { padding: clamp(32px, 5vw, 56px) 0 1.25rem; }
+
+/* scenario picker */
+.picker { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.5rem 0 1rem; padding: 0; border: 0; }
+.picker legend { padding: 0; margin-bottom: .5rem; font-weight: 600; font-size: .95rem; }
+.picker button { font: inherit; font-size: .98rem; padding: .5rem .9rem; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; border-radius: 2px; }
+.picker button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.picker button:hover { background: var(--bar); }
+.picker button[aria-pressed="true"]:hover { background: var(--ink); }
+.scoreline { margin: 0 0 1.5rem; padding-left: 1rem; border-left: 4px solid var(--stamp); max-width: 70ch; }
+
+/* chart */
+.chart-wrap { margin: 1rem 0 0; }
+#chart { display: block; width: 100%; touch-action: pan-y; cursor: ew-resize; user-select: none; -webkit-user-select: none; }
+#chart text { font-family: var(--sans); }
+.legend { display: flex; flex-wrap: wrap; gap: .35rem 1.25rem; margin: .75rem 0 0; padding: 0; list-style: none; font-size: .9rem; color: var(--muted); }
+.legend li { display: inline-flex; align-items: center; gap: .4rem; }
+.sw { width: .85rem; height: .85rem; display: inline-block; border-radius: 2px; flex: none; }
+
+/* controls */
+.controls { margin: 1.25rem 0 .5rem; display: grid; gap: .9rem; }
+.slider-row { display: grid; grid-template-columns: 1fr; gap: .35rem; }
+.slider-row label { font-weight: 600; }
+input[type=range] { width: 100%; accent-color: var(--stamp); height: 2rem; margin: 0; }
+.btn-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.btn-row button, .btn-row select { font: inherit; font-size: .95rem; padding: .45rem .85rem; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; border-radius: 2px; }
+.btn-row button:hover { background: var(--bar); }
+.btn-row button.primary { background: var(--stamp); border-color: var(--stamp); color: #fff; min-width: 5.5rem; }
+.btn-row button.primary:hover { background: #1c2c7c; }
+.btn-row .gap { flex: 1 1 1rem; }
+.cp-jump { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; font-size: .92rem; }
+.cp-jump span { font-weight: 600; margin-right: .25rem; }
+.cp-jump button { font: inherit; font-size: .9rem; padding: .25rem .65rem; border: 1.5px solid var(--stamp); color: var(--stamp); background: transparent; cursor: pointer; border-radius: 2px; }
+.cp-jump button:hover { background: var(--bar); }
+
+/* day panel */
+.panel { display: grid; gap: 2rem 3rem; margin: 2rem 0 0; padding-top: 1.75rem; border-top: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .panel { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } }
+.day-head { font-family: var(--serif); font-weight: 600; font-size: 1.6rem; line-height: 1.2; margin: 0 0 .15rem; }
+.reading { display: flex; align-items: center; gap: .6rem; font-family: var(--serif); font-weight: 600; font-size: 1.5rem; line-height: 1.25; margin: 1rem 0 .4rem; }
+.reading .sw { width: 1.1rem; height: 1.1rem; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1.25rem; margin: 0 0 1rem; }
+.kv dt { font-weight: 600; }
+.kv dd { margin: 0; }
+.pips { display: inline-flex; gap: 3px; vertical-align: -1px; margin-right: .5rem; }
+.pips i { width: 1.1rem; height: .6rem; background: var(--bar); border: 1px solid var(--rule); display: block; }
+.pips i.on { background: var(--ink); border-color: var(--ink); }
+.note { margin: .5rem 0 1rem; color: var(--muted); font-size: .95rem; }
+.flag { margin: 1rem 0; padding-left: 1rem; border-left: 4px solid var(--rule); font-size: .95rem; }
+.flag strong { display: block; }
+
+table { border-collapse: collapse; width: 100%; font-size: .95rem; margin: .5rem 0 1rem; }
+caption { text-align: left; font-weight: 600; padding-bottom: .35rem; }
+th, td { text-align: left; padding: .45rem .7rem; vertical-align: top; }
+thead th { border-bottom: 2px solid var(--ink); font-weight: 600; }
+tbody tr:nth-child(odd) { background: var(--bar); }
+.table-wrap { overflow-x: auto; }
+.graded { border: 1.5px solid var(--stamp); padding: .75rem 1rem 0; margin: 1.25rem 0; }
+.graded h3 { margin-top: 0; color: var(--stamp); }
+
+.checks { list-style: none; padding: 0; margin: .25rem 0 0; font-size: .95rem; }
+.checks li { padding: .35rem 0; border-top: 1px solid var(--rule); display: grid; grid-template-columns: 7.5rem 1fr; gap: .75rem; }
+.checks li b { font-weight: 600; }
+
+.events { list-style: none; margin: .25rem 0 0; padding: 0; }
+.events li { padding: .55rem .75rem; display: grid; gap: .1rem; }
+.events li:nth-child(odd) { background: var(--bar); }
+.events .when { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; font-size: .8rem; font-weight: 600; padding: 0 .45rem; margin-left: .4rem; border: 1.5px solid var(--stamp); color: var(--stamp); border-radius: 2px; line-height: 1.5; white-space: nowrap; }
+.chip.decoy { background: var(--paper); border-style: dashed; }
+.chip.late { border-color: var(--muted); color: var(--muted); }
+.src { font-weight: 600; }
+
+footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3rem; font-size: .92rem; color: var(--muted); }
+.err { padding: 1rem; border-left: 4px solid var(--stamp); background: var(--bar); max-width: 70ch; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="./">Agentic Customer 360</a>
+    <nav aria-label="Sections">
+      <ul>
+        <li><a href="./">Overview</a></li>
+        <li><a href="replay.html" aria-current="page">Replay</a></li>
+        <li><a href="https://github.com/namang34/customer360-final">Source on GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap">
+  <div class="intro">
+    <h1>Replay</h1>
+    <p class="lead measure">Step through all 74 days of a practice scenario. Each day shows what the system believed at its midnight checkpoint, what it chose to do, and what it had seen by then.</p>
+    <p class="measure muted">The system only sees events that had arrived. Every number comes from running the project’s own offline evaluation, then comparing with the answer key.</p>
+  </div>
+
+  <div id="app">
+    <noscript><p class="err">The replay needs JavaScript. The <a href="./">overview page</a> has the results as plain tables.</p></noscript>
+    <p class="muted" id="loading">Loading the replay data.</p>
+  </div>
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p id="provenance" style="margin:0 0 .5rem"></p>
+    <p style="margin:0">Rebuild it with <code>python run_evaluation.py</code> then <code>python docs/build_replay_data.py</code>. <a href="https://github.com/namang34/customer360-final/blob/main/docs/build_replay_data.py">See the script</a>.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  const STATE = {
+    no_significant_event: { label: "Nothing significant", color: "#C5D3C9", fg: "#15231B" },
+    financial_distress_general: { label: "General financial distress", color: "#5B6A7F", fg: "#fff" },
+    medical_hardship: { label: "Medical hardship", color: "#8A3F7D", fg: "#fff" },
+    churn_risk: { label: "Churn risk", color: "#25389A", fg: "#fff" },
+    job_loss_or_income_disruption: { label: "Job loss or income disruption", color: "#9A6A12", fg: "#fff" },
+    new_child_life_event: { label: "New child", color: "#1D7A6B", fg: "#fff" },
+    wealth_growth_or_windfall: { label: "Windfall", color: "#6B7A8F", fg: "#fff" }
+  };
+  const ACTION = {
+    no_action: ["No action", "None"],
+    support_intervention: ["Support intervention", "Support"],
+    personalized_offer: ["Personalised offer", "Offer"],
+    relationship_manager_escalation: ["Escalate to a relationship manager", "Escalate"],
+    proactive_retention_outreach: ["Proactive retention outreach", "Outreach"]
+  };
+  const SRC = {
+    card_payments: "Card payments", core_banking_ledger: "Core ledger", instant_payments: "Instant payments",
+    ach_wire: "Wire transfers", support_logs: "Support", web_app_events: "App activity", loan_kyc: "KYC filings"
+  };
+  const BAND = { low: ["Low", 1], medium: ["Medium", 2], high: ["High", 3] };
+  const HITL = { auto_approved: "Nothing to approve", escalated: "Sent to a person for approval" };
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const sentence = s => { s = String(s).replace(/_/g, " "); return s.charAt(0).toUpperCase() + s.slice(1); };
+  const sLabel = k => (STATE[k] || { label: sentence(k) }).label;
+  const aLabel = k => (ACTION[k] || [sentence(k)])[0];
+  const fmtDate = iso => new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+  const fmtWhen = w => fmtDate(w.slice(0, 10)) + " " + w.slice(11);
+  const join = a => a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
+
+  let DATA, sc, day = 0, timer = null, changeDays = [];
+  const app = document.getElementById("app");
+
+  fetch("replay-data.json")
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(init)
+    .catch(() => {
+      app.innerHTML = '<p class="err">The replay data could not be loaded. If you opened this file directly from disk, serve the <code>docs</code> folder over HTTP (for example <code>python -m http.server</code> in that folder) or use the published site.</p>';
+    });
+
+  function init(data) {
+    DATA = data;
+    document.getElementById("provenance").textContent =
+      "Generated " + data.generated + (data.commit ? " from commit " + data.commit : "") + ": " + data.method +
+      ". Graded fields matched: " + data.graded_fields + ".";
+    app.innerHTML = `
+      <fieldset class="picker" id="picker"><legend>Scenario</legend></fieldset>
+      <p class="measure" id="summary"></p>
+      <p class="scoreline" id="scoreline"></p>
+
+      <div class="chart-wrap"><svg id="chart" role="img" aria-label="Timeline of what the system believed, how sure it was and what it did on each of 74 days. Use the slider below to move through the days."></svg>
+        <ul class="legend" id="legend"></ul>
+      </div>
+
+      <div class="controls">
+        <div class="slider-row">
+          <label for="slider">Day: <output id="dayOut" for="slider"></output></label>
+          <input type="range" id="slider" min="0" max="73" step="1" value="0">
+        </div>
+        <div class="btn-row">
+          <button type="button" id="prev">Previous day</button>
+          <button type="button" id="play" class="primary">Play</button>
+          <button type="button" id="next">Next day</button>
+          <button type="button" id="nextChange">Next change</button>
+          <span class="gap"></span>
+          <label class="small">Speed <select id="speed"><option value="800">Slow</option><option value="400" selected>Normal</option><option value="150">Fast</option></select></label>
+        </div>
+        <div class="cp-jump" id="cpJump"></div>
+      </div>
+      <p class="sr" id="sr" aria-live="polite"></p>
+
+      <div class="panel" id="panel"></div>`;
+
+    const picker = document.getElementById("picker");
+    data.scenarios.forEach((s, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = s.n + ". " + s.title;
+      b.setAttribute("aria-pressed", i === 2 ? "true" : "false");
+      b.addEventListener("click", () => { stop(); pick(i); });
+      picker.appendChild(b);
+    });
+
+    const slider = document.getElementById("slider");
+    slider.addEventListener("input", () => { stop(); go(+slider.value, true); });
+    document.getElementById("prev").addEventListener("click", () => { stop(); go(day - 1); });
+    document.getElementById("next").addEventListener("click", () => { stop(); go(day + 1); });
+    document.getElementById("nextChange").addEventListener("click", () => {
+      stop(); const n = changeDays.find(d => d > day); go(n === undefined ? sc.days.length - 1 : n);
+    });
+    document.getElementById("play").addEventListener("click", () => timer ? stop() : play());
+
+    const chart = document.getElementById("chart");
+    const fromPointer = ev => {
+      const r = chart.getBoundingClientRect();
+      return Math.max(0, Math.min(sc.days.length - 1, Math.floor((ev.clientX - r.left) / r.width * sc.days.length)));
+    };
+    let dragging = false;
+    chart.addEventListener("pointerdown", ev => { stop(); dragging = true; chart.setPointerCapture(ev.pointerId); go(fromPointer(ev)); });
+    chart.addEventListener("pointermove", ev => { if (dragging) go(fromPointer(ev)); });
+    chart.addEventListener("pointerup", () => { dragging = false; });
+    chart.addEventListener("pointercancel", () => { dragging = false; });
+    new ResizeObserver(() => drawChart()).observe(chart.parentElement);
+
+    pick(2);
+  }
+
+  function pick(i) {
+    sc = DATA.scenarios[i];
+    [...document.querySelectorAll("#picker button")].forEach((b, j) => b.setAttribute("aria-pressed", j === i ? "true" : "false"));
+    document.getElementById("summary").textContent = sc.summary;
+
+    const fields = sc.counts.fields_ok + "/" + sc.counts.fields_total;
+    const lead = sc.graded.find(g => g.lead);
+    document.getElementById("scoreline").innerHTML =
+      "<strong>This scenario, scored offline:</strong> " + fields + " graded fields match the answer key, " +
+      sc.falsepos.length + " decoy" + (sc.falsepos.length > 1 ? "s" : "") + " triggered no forbidden action, and the first action came " +
+      (lead ? lead.lead.achieved + " day" + (lead.lead.achieved === 1 ? "" : "s") + " before the " + fmtDate(lead.date) + " checkpoint (target: " + lead.lead.ideal + " or more)" : "in time") + ".";
+
+    changeDays = [];
+    sc.days.forEach((d, k) => {
+      if (k === 0) return;
+      const p = sc.days[k - 1];
+      if (d.state !== p.state || d.band !== p.band || d.action !== p.action) changeDays.push(k);
+    });
+
+    const states = [...new Set(sc.days.map(d => d.state))];
+    document.getElementById("legend").innerHTML =
+      states.map(s => `<li><span class="sw" style="background:${(STATE[s] || {}).color || "#888"}"></span>${esc(sLabel(s))}</li>`).join("") +
+      `<li><span aria-hidden="true">&#9650;</span> Graded checkpoint</li>`;
+
+    document.getElementById("cpJump").innerHTML = "<span>Graded checkpoints:</span>" +
+      sc.graded.map(g => `<button type="button" data-d="${sc.days.findIndex(d => d.date === g.date)}">${esc(fmtDate(g.date))}</button>`).join("");
+    document.querySelectorAll("#cpJump button").forEach(b => b.addEventListener("click", () => { stop(); go(+b.dataset.d); }));
+
+    // open each scenario at its most telling moment: the first graded checkpoint with an action
+    const start = sc.graded.find(g => g.expected.action !== "no_action");
+    go(start ? sc.days.findIndex(d => d.date === start.date) : 0, false, true);
+  }
+
+  function go(k, fromSlider, quiet) {
+    day = Math.max(0, Math.min(sc.days.length - 1, k));
+    const slider = document.getElementById("slider");
+    if (!fromSlider) slider.value = day;
+    slider.setAttribute("aria-valuetext", fmtDate(sc.days[day].date) + ", day " + (day + 1) + " of " + sc.days.length);
+    document.getElementById("dayOut").textContent = fmtDate(sc.days[day].date) + " (day " + (day + 1) + " of " + sc.days.length + ")";
+    document.getElementById("prev").disabled = day === 0;
+    document.getElementById("next").disabled = day === sc.days.length - 1;
+    drawChart();
+    renderPanel();
+    const d = sc.days[day];
+    if (!timer && !quiet) {
+      document.getElementById("sr").textContent = fmtDate(d.date) + ": " + sLabel(d.state) + ", " + BAND[d.band][0].toLowerCase() + " confidence, " + aLabel(d.action).toLowerCase() + ".";
+    }
+  }
+
+  function play() {
+    if (day >= sc.days.length - 1) go(0);
+    const btn = document.getElementById("play");
+    btn.textContent = "Pause";
+    const step = +document.getElementById("speed").value;
+    timer = setInterval(() => {
+      if (day >= sc.days.length - 1) { stop(); return; }
+      go(day + 1);
+    }, step);
+  }
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    const btn = document.getElementById("play"); if (btn) btn.textContent = "Play";
+  }
+
+  // ---------------------------------------------------------------- chart
+  function drawChart() {
+    if (!sc) return;
+    const svg = document.getElementById("chart");
+    const W = Math.max(280, Math.round(svg.parentElement.clientWidth));
+    const n = sc.days.length, dw = W / n;
+    const H = 232;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+    const x = k => k * dw;
+    const o = [];
+
+    // month ticks
+    let lastMonth = "";
+    sc.days.forEach((d, k) => {
+      const m = d.date.slice(0, 7);
+      if (m !== lastMonth) {
+        lastMonth = m;
+        const label = new Date(d.date + "T00:00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+        o.push(`<line x1="${x(k)}" y1="4" x2="${x(k)}" y2="22" stroke="#A9BDB0"/><text x="${x(k) + 5}" y="16" font-size="12.5" fill="#4F6256">${label}</text>`);
+      }
+    });
+
+    // row A: belief
+    o.push(`<text x="0" y="44" font-size="13" font-weight="600" fill="#15231B">What it believes</text>`);
+    runs(sc.days, d => d.state).forEach(r => {
+      const st = STATE[r.key] || { color: "#888", fg: "#fff", label: sentence(r.key) };
+      const w = (r.to - r.from + 1) * dw;
+      o.push(`<rect x="${x(r.from)}" y="50" width="${w}" height="28" fill="${st.color}"/>`);
+      if (w > st.label.length * 6.6 + 14) o.push(`<text x="${x(r.from) + 7}" y="68.5" font-size="12.5" font-weight="500" fill="${st.fg}">${esc(st.label)}</text>`);
+      else if (w > 44) o.push(`<text x="${x(r.from) + 6}" y="68.5" font-size="12.5" font-weight="500" fill="${st.fg}">${esc(st.label.split(" ")[0])}</text>`);
+    });
+
+    // row B: confidence
+    o.push(`<text x="0" y="104" font-size="13" font-weight="600" fill="#15231B">How sure it is</text><text x="${W}" y="104" font-size="12" text-anchor="end" fill="#4F6256">taller is more sure</text>`);
+    sc.days.forEach((d, k) => {
+      const h = BAND[d.band][1] * 14, st = STATE[d.state] || { color: "#888" };
+      o.push(`<rect x="${x(k) + 0.5}" y="${160 - h}" width="${Math.max(1, dw - 1)}" height="${h}" fill="${st.color}"/>`);
+    });
+    o.push(`<line x1="0" y1="160.5" x2="${W}" y2="160.5" stroke="#A9BDB0"/>`);
+
+    // row C: action
+    o.push(`<text x="0" y="184" font-size="13" font-weight="600" fill="#15231B">What it does</text>`);
+    o.push(`<rect x="0" y="190" width="${W}" height="20" fill="#E0ECE3"/>`);
+    runs(sc.days, d => d.action).forEach(r => {
+      if (r.key === "no_action") return;
+      const w = (r.to - r.from + 1) * dw, short = (ACTION[r.key] || [0, sentence(r.key)]);
+      o.push(`<rect x="${x(r.from)}" y="190" width="${w}" height="20" fill="#15231B"/>`);
+      const lab = w > short[0].length * 6.6 + 14 ? short[0] : short[1];
+      if (w > lab.length * 6.6 + 10) o.push(`<text x="${x(r.from) + 7}" y="204.5" font-size="12.5" font-weight="500" fill="#F5F8F4">${esc(lab)}</text>`);
+    });
+
+    // graded checkpoints
+    sc.graded.forEach(g => {
+      const k = sc.days.findIndex(d => d.date === g.date), cx = x(k) + dw / 2;
+      o.push(`<path d="M${cx - 5} 224 L${cx + 5} 224 L${cx} 215 Z" fill="#25389A"/>`);
+    });
+
+    // playhead
+    const px = x(day) + dw / 2;
+    o.push(`<line x1="${px}" y1="22" x2="${px}" y2="186" stroke="#15231B" stroke-width="2"/><circle cx="${px}" cy="24" r="5" fill="#15231B" stroke="#F5F8F4" stroke-width="2"/>`);
+    // mark the current day in the action row without covering its label
+    o.push(`<rect x="${x(day)}" y="212" width="${Math.max(3, dw)}" height="4" fill="#15231B"/>`);
+    svg.innerHTML = o.join("");
+  }
+
+  function runs(days, key) {
+    const out = [];
+    days.forEach((d, k) => {
+      const v = key(d), last = out[out.length - 1];
+      if (last && last.key === v) last.to = k; else out.push({ key: v, from: k, to: k });
+    });
+    return out;
+  }
+
+  // ---------------------------------------------------------------- panel
+  function renderPanel() {
+    const d = sc.days[day], st = STATE[d.state] || { color: "#888", label: sentence(d.state) };
+    const prev = day > 0 ? sc.days[day - 1] : null;
+    const g = sc.graded.find(x => x.date === d.date);
+    const [bandName, bandN] = BAND[d.band];
+
+    let left = `<div>
+      <h2 class="day-head">${esc(fmtDate(d.date))}, day ${day + 1} of ${sc.days.length}</h2>
+      <p class="muted small" style="margin:0">Checkpoint at 00:00 UTC. It has seen everything that arrived before this moment.</p>
+      <p class="reading"><span class="sw" style="background:${st.color}"></span><span>${esc(st.label)}</span></p>
+      <dl class="kv">
+        <dt>Confidence</dt><dd><span class="pips" aria-hidden="true">${[1, 2, 3].map(i => `<i class="${i <= bandN ? "on" : ""}"></i>`).join("")}</span>${bandName}</dd>
+        <dt>Action</dt><dd>${esc(aLabel(d.action))}${d.subtype ? `<br><span class="muted small">${esc(sentence(d.subtype))}</span>` : ""}</dd>
+        <dt>Human review</dt><dd>${esc(HITL[d.hitl] || d.hitl)}</dd>
+      </dl>`;
+
+    if (prev && (prev.state !== d.state || prev.band !== d.band || prev.action !== d.action)) {
+      const bits = [];
+      if (prev.state !== d.state) bits.push("its reading changed from " + sLabel(prev.state).toLowerCase() + " to " + sLabel(d.state).toLowerCase());
+      if (prev.band !== d.band) bits.push("confidence moved from " + BAND[prev.band][0].toLowerCase() + " to " + bandName.toLowerCase());
+      if (prev.action !== d.action) bits.push("the action changed from " + aLabel(prev.action).toLowerCase() + " to " + aLabel(d.action).toLowerCase());
+      left += `<p class="note"><strong>What changed since the day before:</strong> ${esc(join(bits))}.</p>`;
+    } else if (d.carried) {
+      left += `<p class="note">No new signals arrived, so the previous reading carries forward.</p>`;
+    }
+
+    if (g) {
+      const rows = [["state", "Inferred state", sLabel], ["band", "Confidence", k => BAND[k][0]], ["action", "Action", aLabel],
+        ["subtype", "Action subtype", sentence], ["hitl", "Human review", k => HITL[k] || k]]
+        .filter(r => r[0] in g.expected)
+        .map(r => `<tr><th scope="row">${r[1]}</th><td>${esc(r[2](g.expected[r[0]]))}</td><td>${esc(r[2](d[r[0]]))}</td><td>${g.ok[r[0]] ? "Match" : "Differs"}</td></tr>`).join("");
+      left += `<div class="graded"><h3>Graded against the answer key</h3>
+        <div class="table-wrap"><table><thead><tr><th scope="col">Field</th><th scope="col">Answer key</th><th scope="col">System</th><th scope="col">Result</th></tr></thead><tbody>${rows}</tbody></table></div>
+        ${g.lead ? `<p class="small">Lead time: the action first fired on ${esc(fmtDate(g.lead.since))}, ${g.lead.achieved} day${g.lead.achieved === 1 ? "" : "s"} before this checkpoint. The target was ${g.lead.ideal} or more.</p>` : ""}</div>`;
+    } else {
+      left += `<p class="note">No answer key for this day. Only ${sc.graded.length} days in this scenario are graded.</p>`;
+    }
+
+    left += `<h3>What it based this on</h3><dl class="kv">
+      <dt>Strong signals</dt><dd>${d.signals.length ? esc(d.signals.map(s => s.replace(/_/g, " ")).join(", ")) : "None yet"}</dd>
+      <dt>Sources</dt><dd>${d.sources.length ? d.sources.length + " independent system" + (d.sources.length > 1 ? "s" : "") + ": " + esc(join(d.sources.map(s => (SRC[s] || s).toLowerCase()))) : "None yet"}</dd>
+      <dt>Evidence score</dt><dd>${d.affinity.length ? esc(d.affinity.map(a => sLabel(a[0]) + " " + a[1]).join(", ")) : "None yet"}</dd></dl>`;
+
+    if (d.action === "no_action") {
+      left += `<ul class="checks"><li><b>Why no action</b><span>${esc(d.gate)}</span></li></ul>`;
+    } else {
+      left += `<ul class="checks">
+        <li><b>Confidence gate</b><span>${esc(d.gate)}</span></li>
+        <li><b>Guardrail</b><span>${esc(d.guard)}</span></li>
+        <li><b>Critique</b><span>${esc(d.critique)}</span></li>
+        <li><b>Human review</b><span>${esc(HITL[d.hitl] || d.hitl)}</span></li></ul>`;
+    }
+
+    if (d.flag) {
+      left += `<div class="flag"><strong>Flagged for a person to look at</strong>${esc(d.flag.detail)} This is a separate queue. It does not change the graded action.</div>`;
+    }
+    left += "</div>";
+
+    const ev = d.events;
+    let right = `<div><h3 style="margin-top:0">New since the last checkpoint${day > 0 ? " (" + ev.length + ")" : ""}</h3>`;
+    if (day === 0) {
+      right += `<p class="note">The replay starts here. ${sc.counts.history} earlier events were loaded as history before the first checkpoint.</p>`;
+    } else if (!ev.length) {
+      right += `<p class="note">No new events arrived since the previous checkpoint.</p>`;
+    } else {
+      right += `<ul class="events">` + ev.map(e => `<li><span class="when">${esc(fmtWhen(e.when))}</span><span>${esc(e.text)}<span class="chip-line">${e.role === "signal" ? '<span class="chip">Answer key: signal</span>' : e.role === "decoy" ? '<span class="chip decoy">Answer key: decoy</span>' : ""}${e.late ? `<span class="chip late">Arrived ${e.late} day${e.late > 1 ? "s" : ""} late</span>` : ""}</span></span><span class="small muted"><span class="src">${esc(SRC[e.src] || e.src)}</span></span></li>`).join("") + `</ul>`;
+    }
+    right += `<p class="small muted" style="margin-top:1rem">Event times are when things happened. A late event only becomes visible once it arrives, which is why one can appear days after its date.</p></div>`;
+
+    document.getElementById("panel").innerHTML = left + right;
+  }
+})();
+</script>
+</body>
+</html>
