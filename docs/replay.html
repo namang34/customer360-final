@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Replay: Agentic Customer 360</title>
 <meta name="description" content="Step through all 74 days of each practice scenario and see what the system believed, what it did, and why, next to the answer key.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Agentic Customer 360">
+<meta property="og:title" content="Replay: Agentic Customer 360">
+<meta property="og:description" content="Step through all 74 days of each practice scenario and see what the system believed, what it did, and why, next to the answer key.">
+<meta property="og:url" content="https://namang34.github.io/customer360-final/replay.html">
+<meta property="og:image" content="https://namang34.github.io/customer360-final/preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Timeline of one bank customer's 72 events from February to April, with the system's three checkpoints marked.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Replay: Agentic Customer 360">
+<meta name="twitter:description" content="Step through all 74 days of each practice scenario and see what the system believed, what it did, and why, next to the answer key.">
+<meta name="twitter:image" content="https://namang34.github.io/customer360-final/preview.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2325389A'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23F5F8F4' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -124,6 +137,30 @@ tbody tr:nth-child(odd) { background: var(--bar); }
 
 footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3rem; font-size: .92rem; color: var(--muted); }
 .err { padding: 1rem; border-left: 4px solid var(--stamp); background: var(--bar); max-width: 70ch; }
+
+/* comparison */
+.compare { margin: 3.5rem 0 0; padding-top: 2.5rem; border-top: 1px solid var(--rule); }
+.compare figure { margin: 1.5rem 0 1rem; }
+#cmpChart { display: block; width: 100%; }
+#cmpChart text { font-family: var(--sans); }
+@media (max-width: 640px) {
+  #cmpTable table, #cmpTable tbody, #cmpTable tr, #cmpTable th, #cmpTable td { display: block; }
+  #cmpTable caption { display: block; }
+  #cmpTable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  #cmpTable tr { padding: .6rem .75rem; margin-bottom: .25rem; }
+  #cmpTable th[scope=row] { padding: 0 0 .25rem; font-size: 1.05rem; }
+  #cmpTable td { padding: .15rem 0; }
+  #cmpTable td::before { content: attr(data-l) ": "; font-weight: 600; }
+}
+.compare figcaption { font-size: .92rem; color: var(--muted); max-width: 80ch; margin-top: .6rem; }
+
+@media print {
+  .skip, .site-head nav, .picker, .controls, .cp-jump, #cmpJump, #copyLink { display: none !important; }
+  body { font-size: 11pt; background: #fff; }
+  .panel { grid-template-columns: 1fr; }
+  .graded, .compare, .panel > div { break-inside: avoid; }
+  a { color: inherit; }
+}
 </style>
 </head>
 <body>
@@ -199,7 +236,7 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
   const fmtWhen = w => fmtDate(w.slice(0, 10)) + " " + w.slice(11);
   const join = a => a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
 
-  let DATA, sc, day = 0, timer = null, changeDays = [];
+  let DATA, sc, day = 0, timer = null, changeDays = [], booted = false;
   const app = document.getElementById("app");
 
   fetch("replay-data.json")
@@ -233,6 +270,7 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
           <button type="button" id="play" class="primary">Play</button>
           <button type="button" id="next">Next day</button>
           <button type="button" id="nextChange">Next change</button>
+          <button type="button" id="copyLink">Copy link to this day</button>
           <span class="gap"></span>
           <label class="small">Speed <select id="speed"><option value="800">Slow</option><option value="400" selected>Normal</option><option value="150">Fast</option></select></label>
         </div>
@@ -240,7 +278,20 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
       </div>
       <p class="sr" id="sr" aria-live="polite"></p>
 
-      <div class="panel" id="panel"></div>`;
+      <div class="panel" id="panel"></div>
+
+      <section class="compare" id="compare" aria-labelledby="cmpH">
+        <h2 id="cmpH">Offline versus live models</h2>
+        <p class="measure">Everything above is the offline path: keyword rules and arithmetic, with the same answer on every run. The same scenarios were also run with language models in the loop, with 231 model calls and no fallbacks. In scenario 2 they lost a graded checkpoint.</p>
+        <figure>
+          <svg id="cmpChart" role="img" aria-label="Scenario 2 timeline. The offline path settles on a new-child reading on 19 February. The live models read job loss or income disruption from 15 February to 3 March, 17 days, then recovered."></svg>
+          <ul class="legend" id="cmpLegend"></ul>
+          <figcaption>Scenario 2. The offline row is the replay data. The live row shows only what the evaluation write-up recorded: the 17-day misread and the two graded checkpoints. Daily live readings were not saved.</figcaption>
+        </figure>
+        <div class="table-wrap" id="cmpTable"></div>
+        <p class="btn-row"><button type="button" id="cmpJump">Open 20 Feb in the replay</button></p>
+        <p class="measure small muted">Scenario 1 was identical to offline on all 74 days. Scenario 3 matched on every graded field but proposed 24 actions against the offline path&rsquo;s 42. One run per scenario, the same model in both roles, and a stronger reasoning model might do better. That is untested. Details in <a href="https://github.com/namang34/customer360-final/blob/main/docs/EVALUATION.md">EVALUATION.md</a>.</p>
+      </section>`;
 
     const picker = document.getElementById("picker");
     data.scenarios.forEach((s, i) => {
@@ -259,6 +310,15 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
       stop(); const n = changeDays.find(d => d > day); go(n === undefined ? sc.days.length - 1 : n);
     });
     document.getElementById("play").addEventListener("click", () => timer ? stop() : play());
+    const copyBtn = document.getElementById("copyLink");
+    copyBtn.addEventListener("click", () => {
+      const url = location.href, done = () => { copyBtn.textContent = "Link copied"; setTimeout(() => { copyBtn.textContent = "Copy link to this day"; }, 1800); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(done, () => window.prompt("Copy this link", url));
+      else window.prompt("Copy this link", url);
+    });
+    document.getElementById("cmpJump").addEventListener("click", () => {
+      stop(); pick(1, 19); document.getElementById("picker").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
 
     const chart = document.getElementById("chart");
     const fromPointer = ev => {
@@ -270,12 +330,19 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
     chart.addEventListener("pointermove", ev => { if (dragging) go(fromPointer(ev)); });
     chart.addEventListener("pointerup", () => { dragging = false; });
     chart.addEventListener("pointercancel", () => { dragging = false; });
-    new ResizeObserver(() => drawChart()).observe(chart.parentElement);
+    new ResizeObserver(() => { drawChart(); drawCompare(); }).observe(chart.parentElement);
 
-    pick(2);
+    renderCompareTable();
+    document.getElementById("cmpLegend").innerHTML =
+      [...new Set(data.scenarios[1].days.map(d => d.state))].map(s => `<li><span class="sw" style="background:${(STATE[s] || {}).color || "#888"}"></span>${esc(sLabel(s))}</li>`).join("") +
+      `<li><span class="sw" style="background:repeating-linear-gradient(45deg,#A9BDB0 0 2px,#F5F8F4 2px 5px)"></span>Live reading not recorded</li><li><span aria-hidden="true">&#9650;</span> Graded checkpoint</li>`;
+    const m = /^#s([123])-d(\d{1,2})$/.exec(location.hash);
+    if (m && +m[2] < data.scenarios[+m[1] - 1].days.length) pick(+m[1] - 1, +m[2]); else pick(2);
+    booted = true;
+    drawCompare();
   }
 
-  function pick(i) {
+  function pick(i, startDay) {
     sc = DATA.scenarios[i];
     [...document.querySelectorAll("#picker button")].forEach((b, j) => b.setAttribute("aria-pressed", j === i ? "true" : "false"));
     document.getElementById("summary").textContent = sc.summary;
@@ -305,7 +372,7 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
 
     // open each scenario at its most telling moment: the first graded checkpoint with an action
     const start = sc.graded.find(g => g.expected.action !== "no_action");
-    go(start ? sc.days.findIndex(d => d.date === start.date) : 0, false, true);
+    go(startDay !== undefined ? startDay : start ? sc.days.findIndex(d => d.date === start.date) : 0, false, true);
   }
 
   function go(k, fromSlider, quiet) {
@@ -318,6 +385,7 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
     document.getElementById("next").disabled = day === sc.days.length - 1;
     drawChart();
     renderPanel();
+    if (booted) { try { history.replaceState(null, "", "#s" + sc.n + "-d" + day); } catch (e) { /* ignore */ } }
     const d = sc.days[day];
     if (!timer && !quiet) {
       document.getElementById("sr").textContent = fmtDate(d.date) + ": " + sLabel(d.state) + ", " + BAND[d.band][0].toLowerCase() + " confidence, " + aLabel(d.action).toLowerCase() + ".";
@@ -343,10 +411,11 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
   function drawChart() {
     if (!sc) return;
     const svg = document.getElementById("chart");
-    const W = Math.max(280, Math.round(svg.parentElement.clientWidth));
+    const W0 = Math.max(280, Math.round(svg.parentElement.clientWidth));
+    const k = W0 < 520 ? 1.2 : 1, W = W0 / k;
     const n = sc.days.length, dw = W / n;
     const H = 232;
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", Math.round(H * k));
     const x = k => k * dw;
     const o = [];
 
@@ -398,7 +467,7 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
 
     // playhead
     const px = x(day) + dw / 2;
-    o.push(`<line x1="${px}" y1="22" x2="${px}" y2="186" stroke="#15231B" stroke-width="2"/><circle cx="${px}" cy="24" r="5" fill="#15231B" stroke="#F5F8F4" stroke-width="2"/>`);
+    o.push(`<line x1="${px}" y1="22" x2="${px}" y2="166" stroke="#15231B" stroke-width="2"/><circle cx="${px}" cy="24" r="5" fill="#15231B" stroke="#F5F8F4" stroke-width="2"/>`);
     // mark the current day in the action row without covering its label
     o.push(`<rect x="${x(day)}" y="212" width="${Math.max(3, dw)}" height="4" fill="#15231B"/>`);
     svg.innerHTML = o.join("");
@@ -411,6 +480,63 @@ footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding: 2rem 0 3r
       if (last && last.key === v) last.to = k; else out.push({ key: v, from: k, to: k });
     });
     return out;
+  }
+
+  // ---------------------------------------------------------------- offline versus live
+  const LIVE_SPAN = [14, 30];            // 15 Feb to 3 Mar: seventeen consecutive checkpoints (EVALUATION.md)
+  const CMP_CHECKS = [19, 54];           // 20 Feb and 27 Mar, the two graded checkpoints in scenario 2
+
+  function renderCompareTable() {
+    const s2 = DATA.scenarios[1];
+    const rows = s2.graded.map(g => {
+      const liveOk = g.date !== "2026-02-20";
+      const live = liveOk ? "Matches the answer key" : "Job loss or income disruption. Does not match.";
+      return `<tr><th scope="row">${esc(fmtDate(g.date))}</th><td data-l="Answer key">${esc(sLabel(g.expected.state))}, ${esc(BAND[g.expected.band][0].toLowerCase())} confidence, ${esc(aLabel(g.expected.action).toLowerCase())}</td><td data-l="Offline">Matches the answer key</td><td data-l="Live models">${esc(live)}</td></tr>`;
+    }).join("");
+    document.getElementById("cmpTable").innerHTML =
+      `<table><caption>Graded checkpoints in scenario 2</caption><thead><tr><th scope="col">Checkpoint</th><th scope="col">Answer key</th><th scope="col">Offline</th><th scope="col">Live models</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  function drawCompare() {
+    const svg = document.getElementById("cmpChart");
+    if (!svg || !DATA) return;
+    const days = DATA.scenarios[1].days, n = days.length;
+    const W0 = Math.max(280, Math.round(svg.parentElement.clientWidth));
+    const k = W0 < 520 ? 1.2 : 1, W = W0 / k, dw = W / n, narrow = W < 760, H = narrow ? 232 : 196;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", Math.round(H * k));
+    const x = i => i * dw, o = [];
+    o.push(`<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#F5F8F4"/><line x1="0" y1="0" x2="0" y2="7" stroke="#A9BDB0" stroke-width="2"/></pattern></defs>`);
+    let last = "";
+    days.forEach((d, i) => {
+      const m = d.date.slice(0, 7);
+      if (m !== last) { last = m; const lab = new Date(d.date + "T00:00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+        o.push(`<line x1="${x(i)}" y1="4" x2="${x(i)}" y2="22" stroke="#A9BDB0"/><text x="${x(i) + 5}" y="16" font-size="12.5" fill="#4F6256">${lab}</text>`); }
+    });
+    o.push(`<text x="0" y="42" font-size="13" font-weight="600" fill="#15231B">Offline</text>`);
+    runs(days, d => d.state).forEach(r => {
+      const st = STATE[r.key] || { color: "#888", fg: "#fff", label: sentence(r.key) }, w = (r.to - r.from + 1) * dw;
+      o.push(`<rect x="${x(r.from)}" y="48" width="${w}" height="28" fill="${st.color}"/>`);
+      if (w > st.label.length * 6.6 + 14) o.push(`<text x="${x(r.from) + 7}" y="66.5" font-size="12.5" font-weight="500" fill="${st.fg}">${esc(st.label)}</text>`);
+    });
+    o.push(`<text x="0" y="104" font-size="13" font-weight="600" fill="#15231B">Live models</text>`);
+    o.push(`<rect x="0" y="110" width="${W}" height="28" fill="url(#hatch)" stroke="#A9BDB0"/>`);
+    const jl = STATE.job_loss_or_income_disruption, a = x(LIVE_SPAN[0]), w = (LIVE_SPAN[1] - LIVE_SPAN[0] + 1) * dw;
+    o.push(`<rect x="${a}" y="110" width="${w}" height="28" fill="${jl.color}"/>`);
+    const lab = w > 250 ? "Job loss or income disruption, 17 days" : w > 150 ? "Job loss, 17 days" : "";
+    if (lab) o.push(`<text x="${a + 7}" y="128.5" font-size="12.5" font-weight="500" fill="#fff">${lab}</text>`);
+    CMP_CHECKS.forEach((c, j) => {
+      const cx = x(c) + dw / 2;
+      o.push(`<line x1="${cx}" y1="48" x2="${cx}" y2="150" stroke="#25389A" stroke-opacity=".5" stroke-dasharray="3 4"/>`);
+      o.push(`<path d="M${cx - 5} 152 L${cx + 5} 152 L${cx} 143 Z" fill="#25389A"/>`);
+      let anchor, tx, dy = 0;
+      if (narrow) { anchor = j === 0 ? "start" : "end"; tx = j === 0 ? 2 : W - 2; dy = j === 0 ? 0 : 36; }
+      else { anchor = j === 0 ? "end" : "start"; tx = j === 0 ? cx - 8 : cx + 8; }
+      o.push(`<text x="${tx}" y="${167 + dy}" text-anchor="${anchor}" font-size="13" font-weight="600" fill="#25389A">${j === 0 ? "20 Feb: live misses the key" : "27 Mar: live matches the key"}</text>`);
+      o.push(`<text x="${tx}" y="${183 + dy}" text-anchor="${anchor}" font-size="12.5" fill="#4F6256">${j === 0 ? "offline matches it" : "live had recovered"}</text>`);
+    });
+    const hx = x(34) + 4;
+    if (W > 520) o.push(`<text x="${hx}" y="128.5" font-size="12.5" fill="#4F6256">Daily readings not recorded</text>`);
+    svg.innerHTML = o.join("");
   }
 
   // ---------------------------------------------------------------- panel

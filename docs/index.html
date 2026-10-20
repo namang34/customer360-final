@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agentic Customer 360</title>
 <meta name="description" content="A multi-agent system that reads a bank customer's activity, works out what is happening in their life, and decides whether the bank should reach out. Built for Inter IIT Tech Meet 15.0.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Agentic Customer 360">
+<meta property="og:title" content="Agentic Customer 360">
+<meta property="og:description" content="It reads a bank customer's activity, works out what is going on in their life, and decides whether the bank should reach out.">
+<meta property="og:url" content="https://namang34.github.io/customer360-final/">
+<meta property="og:image" content="https://namang34.github.io/customer360-final/preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Timeline of one bank customer's 72 events from February to April, with the system's three checkpoints marked.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Agentic Customer 360">
+<meta name="twitter:description" content="It reads a bank customer's activity, works out what is going on in their life, and decides whether the bank should reach out.">
+<meta name="twitter:image" content="https://namang34.github.io/customer360-final/preview.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2325389A'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23F5F8F4' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -129,6 +142,18 @@ dl.docs dt { font-weight: 600; }
 dl.docs dd { margin: 0 0 .75rem; color: var(--muted); }
 
 footer { border-top: 1px solid var(--rule); padding: 2rem 0 3rem; font-size: .92rem; color: var(--muted); }
+
+/* scenario cards */
+.scn-grid { display: grid; gap: 2.5rem 2.5rem; grid-template-columns: minmax(0, 1fr); margin-top: 1.5rem; }
+@media (min-width: 880px) { .scn-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .scn { display: grid; grid-template-rows: subgrid; grid-row: span 7; row-gap: 0; } }
+.scn { border-top: 3px solid var(--ink); padding-top: .75rem; }
+.scn h3 { margin: 0 0 .5rem; font-family: var(--serif); font-size: 1.2rem; }
+.scn p { margin-bottom: .75rem; }
+.mini { display: block; width: 100%; height: auto; margin: 1rem 0 .5rem; }
+.mini-legend { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .85rem; color: var(--muted); }
+.mini-legend li { display: inline-flex; align-items: center; gap: .4rem; }
+.mini-legend .sw { width: .8rem; height: .8rem; display: inline-block; flex: none; }
 </style>
 </head>
 <body>
@@ -304,6 +329,42 @@ footer { border-top: 1px solid var(--rule); padding: 2rem 0 3rem; font-size: .92
     </figure>
     <div class="measure" style="margin-top:2rem">
       <p>This customer is slowly leaving the bank. The system holds back on 15 February, when the evidence is thin. It does not treat the tax refund as a reason to sell them something. It escalates three days before the 8 March checkpoint, which is after the cancel-instructions page was opened on 4 March and before the first large transfer on 6 March.</p>
+    </div>
+  </div>
+</section>
+
+<section id="scenarios">
+  <div class="wrap">
+    <h2>Three practice scenarios</h2>
+    <p class="measure">Each bar runs from 1 February to 15 April. The top bar is what the system believed, day by day. The dark stretches in the bottom bar are the days it recommended an action.</p>
+    <div class="scn-grid">
+      <article class="scn">
+        <h3>1. A medical emergency</h3>
+        <p>A sudden hospital stay. Salary is replaced by a smaller benefit, large hospital bills arrive, and savings are drawn down. A tuition transfer and a resort refund look alarming but are decoys.</p>
+        <svg viewBox="0 0 300 42" class="mini" aria-hidden="true" focusable="false"><rect x="0.00" y="2" width="20.27" height="15" fill="#C5D3C9"/><rect x="20.27" y="2" width="20.27" height="15" fill="#5B6A7F"/><rect x="40.54" y="2" width="259.46" height="15" fill="#8A3F7D"/><rect x="0" y="24" width="300" height="12" fill="#E0ECE3"/><rect x="194.59" y="24" width="105.41" height="12" fill="#15231B"/></svg>
+        <ul class="mini-legend"><li><span class="sw" style="background:#C5D3C9"></span>Nothing significant</li><li><span class="sw" style="background:#5B6A7F"></span>General financial distress</li><li><span class="sw" style="background:#8A3F7D"></span>Medical hardship</li></ul>
+        <p class="small">Medical hardship from 11 Feb, at low confidence. First action, support intervention, on 21 Mar.</p>
+        <p class="small muted">11/11 graded fields match the answer key, and the action came 5 days early (target 1 or more).</p>
+        <p class="small"><a href="replay.html#s1-d48">Replay scenario 1</a></p>
+      </article>
+      <article class="scn">
+        <h3>2. A new child</h3>
+        <p>Income dips during leave, spending shifts to baby products, then a daycare standing instruction and a dependents update arrive. A large electronics purchase looks like fraud but is a baby monitor.</p>
+        <svg viewBox="0 0 300 42" class="mini" aria-hidden="true" focusable="false"><rect x="0.00" y="2" width="4.05" height="15" fill="#C5D3C9"/><rect x="4.05" y="2" width="20.27" height="15" fill="#25389A"/><rect x="24.32" y="2" width="32.43" height="15" fill="#9A6A12"/><rect x="56.76" y="2" width="16.22" height="15" fill="#25389A"/><rect x="72.97" y="2" width="227.03" height="15" fill="#1D7A6B"/><rect x="0" y="24" width="300" height="12" fill="#E0ECE3"/><rect x="186.49" y="24" width="113.51" height="12" fill="#15231B"/></svg>
+        <ul class="mini-legend"><li><span class="sw" style="background:#C5D3C9"></span>Nothing significant</li><li><span class="sw" style="background:#25389A"></span>Churn risk</li><li><span class="sw" style="background:#9A6A12"></span>Job loss or income disruption</li><li><span class="sw" style="background:#1D7A6B"></span>New child</li></ul>
+        <p class="small">New child from 19 Feb, at low confidence. First action, personalised offer, on 19 Mar.</p>
+        <p class="small muted">8/8 graded fields match the answer key, and the action came 8 days early (target 2 or more).</p>
+        <p class="small"><a href="replay.html#s2-d46">Replay scenario 2</a></p>
+      </article>
+      <article class="scn">
+        <h3>3. A slow exit</h3>
+        <p>A fee dispute is refused, app use falls, standing instructions are cancelled and savings move to another bank. A large tax refund arrives in between and is a decoy.</p>
+        <svg viewBox="0 0 300 42" class="mini" aria-hidden="true" focusable="false"><rect x="0.00" y="2" width="20.27" height="15" fill="#C5D3C9"/><rect x="20.27" y="2" width="279.73" height="15" fill="#25389A"/><rect x="0" y="24" width="300" height="12" fill="#E0ECE3"/><rect x="129.73" y="24" width="85.14" height="12" fill="#15231B"/><rect x="214.86" y="24" width="85.14" height="12" fill="#15231B"/></svg>
+        <ul class="mini-legend"><li><span class="sw" style="background:#C5D3C9"></span>Nothing significant</li><li><span class="sw" style="background:#25389A"></span>Churn risk</li></ul>
+        <p class="small">Churn risk from 6 Feb, at low confidence. First action, escalation to a relationship manager, on 5 Mar.</p>
+        <p class="small muted">11/11 graded fields match the answer key, and the action came 3 days early (target 3 or more).</p>
+        <p class="small"><a href="replay.html#s3-d32">Replay scenario 3</a></p>
+      </article>
     </div>
   </div>
 </section>
