@@ -1,5 +1,7 @@
 # Agentic Customer 360 — Proactive Intervention Desk
 
+**Live site:** [namang34.github.io/customer360-final](https://namang34.github.io/customer360-final/) — an overview, plus a [replay](https://namang34.github.io/customer360-final/replay.html) that steps through all 74 days of each scenario.
+
 Inter IIT Tech Meet 15.0 Prepathon. An ambient multi-agent system that watches a
 retail banking customer's event streams, infers what is happening in their life,
 and decides whether the bank should intervene.
