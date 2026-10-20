@@ -1,0 +1,80 @@
+{
+  "scenario_id": "held_out_h1_account_takeover",
+  "true_narrative": "A long-standing customer's account is taken over in the early hours of 21 February. Someone logs in from a desktop for the first time, changes the phone number, adds payees and raises the transfer limit, then drains savings and sends money to new payees abroad and buys gift cards. The customer notices on the afternoon of 22 February and reports it. Two earlier events look suspicious but are not: small card-present purchases while travelling, and a large payment to a known tax office. Recalled funds are credited back on 10 March, which looks like a windfall but is not.",
+  "signal_events": [
+    "EVT_000375",
+    "EVT_000377",
+    "EVT_000378",
+    "EVT_000379",
+    "EVT_000380",
+    "EVT_000381",
+    "EVT_000382",
+    "EVT_000383",
+    "EVT_000384",
+    "EVT_000385",
+    "EVT_000386",
+    "EVT_000391",
+    "EVT_000392",
+    "EVT_000393",
+    "EVT_000397"
+  ],
+  "red_herring_events": [
+    "EVT_000336",
+    "EVT_000349",
+    "EVT_000435"
+  ],
+  "checkpoints": [
+    {
+      "as_of_time": "2026-02-20T00:00:00Z",
+      "expected_inferred_state": "no_significant_event",
+      "expected_confidence_band": "low",
+      "expected_action": "no_action",
+      "notes": "Before the attack. The foreign card purchases and the property-tax payment must not raise an alarm."
+    },
+    {
+      "as_of_time": "2026-02-22T00:00:00Z",
+      "expected_inferred_state": "potential_fraud_or_takeover",
+      "expected_confidence_band": "high",
+      "expected_action": "compliance_fraud_hold",
+      "expected_hitl_status": "escalated",
+      "notes": "The takeover has been under way for about twenty hours and the customer has not yet noticed. A new device, a changed phone number, new payees and money leaving to them are independent signals."
+    },
+    {
+      "as_of_time": "2026-02-24T00:00:00Z",
+      "expected_inferred_state": "potential_fraud_or_takeover",
+      "expected_confidence_band": "high",
+      "expected_action": "compliance_fraud_hold",
+      "expected_hitl_status": "escalated",
+      "ideal_action_lead_time_days": 2,
+      "notes": "The hold should already have fired before the customer reported it on the afternoon of 22 February."
+    }
+  ],
+  "false_positive_checks": [
+    {
+      "event_id": "EVT_000336",
+      "must_not_trigger_action": [
+        "compliance_fraud_hold",
+        "relationship_manager_escalation"
+      ],
+      "window_hours": 72,
+      "notes": "Card-present purchases abroad while travelling."
+    },
+    {
+      "event_id": "EVT_000349",
+      "must_not_trigger_action": [
+        "compliance_fraud_hold",
+        "relationship_manager_escalation"
+      ],
+      "window_hours": 72,
+      "notes": "A large payment to a payee the customer paid before."
+    },
+    {
+      "event_id": "EVT_000435",
+      "must_not_trigger_action": [
+        "personalized_offer"
+      ],
+      "window_hours": 72,
+      "notes": "Recalled funds returning look like a windfall but are not."
+    }
+  ]
+}
